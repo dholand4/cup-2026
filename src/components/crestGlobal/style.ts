@@ -14,6 +14,7 @@ export const CrestContainer = styled.View<{
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
 `;
 
 export const CrestLabel = styled.Text<{

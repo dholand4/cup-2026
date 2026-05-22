@@ -49,6 +49,42 @@ export const DEFAULT_TEAM_COLORS: ITeamColors = {
   stroke: '#475569',
 };
 
+// ── TLA → ISO 3166-1 alpha-2 (flagcdn.com) ────────────────────────────
+export const TLA_TO_ISO2: Record<string, string> = {
+  // América do Sul
+  BRA: 'br', ARG: 'ar', URU: 'uy', COL: 'co', ECU: 'ec',
+  PAR: 'py', VEN: 've', BOL: 'bo', PER: 'pe', CHI: 'cl',
+  // América do Norte / Central / Caribe
+  USA: 'us', MEX: 'mx', CAN: 'ca', PAN: 'pa', JAM: 'jm',
+  CRC: 'cr', HON: 'hn', SLV: 'sv', GTM: 'gt', TRI: 'tt',
+  HAI: 'ht', CUB: 'cu',
+  // Europa
+  FRA: 'fr', GER: 'de', ALE: 'de', ESP: 'es', POR: 'pt',
+  ENG: 'gb-eng', ING: 'gb-eng', ITA: 'it', NED: 'nl', HOL: 'nl',
+  BEL: 'be', SUI: 'ch', CRO: 'hr', SRB: 'rs', POL: 'pl',
+  DEN: 'dk', NOR: 'no', SWE: 'se', AUT: 'at', UKR: 'ua',
+  TUR: 'tr', HUN: 'hu', GRE: 'gr', SVK: 'sk', SVN: 'si',
+  ROU: 'ro', CZE: 'cz', SCO: 'gb-sct', WAL: 'gb-wls',
+  IRL: 'ie', ISL: 'is', FIN: 'fi', ALB: 'al', MNE: 'me',
+  BIH: 'ba', MKD: 'mk', GEO: 'ge', ARM: 'am', AZE: 'az',
+  // África
+  MAR: 'ma', SEN: 'sn', NGA: 'ng', CMR: 'cm', EGY: 'eg',
+  GHA: 'gh', TUN: 'tn', CIV: 'ci', GIN: 'gn', ALG: 'dz',
+  ZAF: 'za', TZA: 'tz', EQG: 'gq', MOZ: 'mz', ANG: 'ao',
+  ETH: 'et', UGA: 'ug', ZAM: 'zm', KEN: 'ke', MLI: 'ml',
+  // Ásia
+  JPN: 'jp', KOR: 'kr', AUS: 'au', IRN: 'ir', KSA: 'sa',
+  QAT: 'qa', IDN: 'id', JOR: 'jo', IRQ: 'iq', UZB: 'uz',
+  CHN: 'cn', IND: 'in', KUW: 'kw', UAE: 'ae', OMA: 'om',
+  // Oceania
+  NZL: 'nz',
+};
+
+export function getTlaIso2(tla: string | null | undefined): string | null {
+  if (!tla) return null;
+  return TLA_TO_ISO2[tla.toUpperCase()] ?? null;
+}
+
 export function getTeamColors(tla: string | null | undefined): ITeamColors {
   if (!tla) return DEFAULT_TEAM_COLORS;
   return TEAMS_DATA[tla.toUpperCase()] ?? DEFAULT_TEAM_COLORS;
