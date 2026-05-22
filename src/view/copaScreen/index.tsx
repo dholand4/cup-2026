@@ -1,14 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
-  ScrollView, RefreshControl, ActivityIndicator,
-  Modal, TouchableOpacity, View,
+  ScrollView, RefreshControl, ActivityIndicator, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { IGroup, ITeam } from '../../@types';
 import { useStandings } from '../../hooks/useStandings';
 import { useScorers } from '../../hooks/useScorers';
-import { useTeamDetail } from '../../hooks/useTeamDetail';
 import { GroupTableGlobal } from '../../components/groupTableGlobal';
 import { EmptyStateGlobal } from '../../components/emptyStateGlobal';
 import { SearchBarGlobal } from '../../components/searchBarGlobal';
@@ -20,16 +16,10 @@ import {
   FilterScroll, FilterChip, FilterChipText, GroupList,
   ScorerCard, ScorerRank, ScorerInfo, ScorerName, ScorerTeam,
   ScorerStats, ScorerGoals, ScorerAssists,
-  TeamCard, TeamCardInfo, TeamCardName, TeamCardGroup,
-  ModalOverlay, ModalSheet, ModalHandle, ModalScroll,
-  ModalCloseBtn, ModalCloseText,
-  TeamProfileHeader, TeamProfileName, TeamProfileDetail,
-  SectionLabel, CoachCard, CoachName, CoachNat,
-  PlayerItem, PlayerNum, PlayerNameText, PlayerPos,
   BottomSpacer,
 } from './style';
 
-type ActiveTab = 'grupos' | 'selecoes' | 'artilheiros';
+type ActiveTab = 'grupos' | 'artilheiros';
 
 // ── helpers ────────────────────────────────────────────────────────────
 
@@ -43,113 +33,10 @@ function getGroupKey(groupCode: string | null, index: number): string {
   return groupCode ?? `group-${index}`;
 }
 
-const POSITION_ORDER: Record<string, number> = {
-  Goalkeeper: 0, Offence: 1, Defence: 2, Midfield: 3, Forward: 4,
-};
-
-// ── TeamProfileModal ───────────────────────────────────────────────────
-
-interface ITeamProfileProps {
-  teamId: number | null;
-  teamBasic?: ITeam;
-  onClose: () => void;
-}
-
-function TeamProfileModal({ teamId, teamBasic, onClose }: ITeamProfileProps) {
-  const { team, loading, error } = useTeamDetail(teamId);
-  const displayName = team?.name ?? teamBasic?.name ?? '';
-
-  const squadByPosition = useMemo(() => {
-    if (!team?.squad) return [];
-    const sorted = [...team.squad].sort(
-      (a, b) => (POSITION_ORDER[a.position ?? ''] ?? 9) - (POSITION_ORDER[b.position ?? ''] ?? 9),
-    );
-    return sorted;
-  }, [team]);
-
-  return (
-    <Modal visible={!!teamId} transparent animationType="slide" onRequestClose={onClose}>
-      <ModalOverlay>
-        <TouchableOpacity style={{ flex: 1 }} onPress={onClose} />
-        <ModalSheet>
-          <ModalHandle />
-          <ModalCloseBtn onPress={onClose}>
-            <ModalCloseText>Fechar</ModalCloseText>
-          </ModalCloseBtn>
-
-          <ModalScroll showsVerticalScrollIndicator={false}>
-              {/* Header — mostra com dados básicos enquanto carrega */}
-              <TeamProfileHeader>
-                <CrestGlobal tla={team?.tla ?? teamBasic?.tla ?? ''} size={64} teamName={displayName} />
-                <TeamProfileName>{displayName}</TeamProfileName>
-                {team?.venue && (
-                  <TeamProfileDetail>🏟 {team.venue}</TeamProfileDetail>
-                )}
-              </TeamProfileHeader>
-
-          {loading && (
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <ActivityIndicator color={theme.colors.accent.green} />
-            </View>
-          )}
-
-          {!loading && team && (
-            <>
-              {/* Técnico */}
-              {team.coach && (
-                <>
-                  <SectionLabel>Técnico</SectionLabel>
-                  <CoachCard>
-                    <Ionicons name="person" size={20} color={theme.colors.accent.green} />
-                    <View>
-                      <CoachName>{team.coach.name}</CoachName>
-                      {team.coach.nationality && (
-                        <CoachNat>{team.coach.nationality}</CoachNat>
-                      )}
-                    </View>
-                  </CoachCard>
-                </>
-              )}
-
-              {/* Convocados */}
-              {squadByPosition.length > 0 && (
-                <>
-                  <SectionLabel>Convocados ({squadByPosition.length})</SectionLabel>
-                  {squadByPosition.map((p, i) => (
-                    <PlayerItem key={i}>
-                      <PlayerNum>{p.shirtNumber ?? '—'}</PlayerNum>
-                      <PlayerNameText numberOfLines={1}>{p.name}</PlayerNameText>
-                      <PlayerPos>{p.position ?? ''}</PlayerPos>
-                    </PlayerItem>
-                  ))}
-                </>
-              )}
-
-              {!team.coach && squadByPosition.length === 0 && (
-                <EmptyStateGlobal
-                  message={'Elenco e técnico serão\ndivulgados em breve\n\n📅 Copa 2026 · 11 Jun'}
-                  icon="people-outline"
-                />
-              )}
-            </>
-          )}
-
-          {!loading && error && (
-            <EmptyStateGlobal message="Não foi possível carregar os dados" icon="wifi-outline" />
-          )}
-
-              <BottomSpacer />
-            </ModalScroll>
-        </ModalSheet>
-      </ModalOverlay>
-    </Modal>
-  );
-}
-
 // ── GruposTab ──────────────────────────────────────────────────────────
 
 interface IGruposTabProps {
-  groups: IGroup[];
+  groups: ReturnType<typeof useStandings>['groups'];
   refreshing: boolean;
   onRefresh: () => void;
 }
@@ -278,79 +165,10 @@ function ArtilheirosTab() {
   );
 }
 
-// ── SelecoesTab ────────────────────────────────────────────────────────
-
-interface ISelecoesTabProps {
-  groups: IGroup[];
-}
-
-function SelecoesTab({ groups }: ISelecoesTabProps) {
-  const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
-  const [selectedTeam, setSelectedTeam] = useState<ITeam | undefined>(undefined);
-  const [search, setSearch] = useState('');
-
-  // Extrai todos os times dos grupos com grupo e id
-  const allTeams = useMemo(() => {
-    const teams: Array<{ team: ITeam; groupLabel: string }> = [];
-    groups.forEach((g, i) => {
-      const label = getGroupLabel(g.group, i);
-      g.table.forEach(row => {
-        teams.push({ team: row.team, groupLabel: label });
-      });
-    });
-    return teams;
-  }, [groups]);
-
-  const filtered = useMemo(() => {
-    const term = search.toLowerCase().trim();
-    if (!term) return allTeams;
-    return allTeams.filter(
-      ({ team }) =>
-        team.name?.toLowerCase().includes(term) ||
-        team.shortName?.toLowerCase().includes(term) ||
-        team.tla?.toLowerCase().includes(term),
-    );
-  }, [allTeams, search]);
-
-  if (groups.length === 0) {
-    return (
-      <EmptyStateGlobal
-        message={'Seleções disponíveis\nquando a Copa começar\n\n📅 Copa 2026 · 11 Jun'}
-        icon="people-outline"
-      />
-    );
-  }
-
-  return (
-    <>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SearchBarGlobal value={search} onChangeText={setSearch} />
-        {filtered.map(({ team, groupLabel }, i) => (
-          <TeamCard key={i} onPress={() => { setSelectedTeamId(team.id); setSelectedTeam(team); }} activeOpacity={0.7}>
-            <CrestGlobal tla={team.tla} size={36} teamName={team.name} />
-            <TeamCardInfo>
-              <TeamCardName>{team.name}</TeamCardName>
-              <TeamCardGroup>{groupLabel}</TeamCardGroup>
-            </TeamCardInfo>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.text.muted} />
-          </TeamCard>
-        ))}
-        <BottomSpacer />
-      </ScrollView>
-
-      <TeamProfileModal
-        teamId={selectedTeamId}
-        teamBasic={selectedTeam}
-        onClose={() => { setSelectedTeamId(null); setSelectedTeam(undefined); }}
-      />
-    </>
-  );
-}
-
 // ── CopaScreen ─────────────────────────────────────────────────────────
 
 export function CopaScreen() {
-  const { groups, loading, error, refresh } = useStandings();
+  const { groups, loading, refresh } = useStandings();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('grupos');
 
@@ -382,9 +200,6 @@ export function CopaScreen() {
         <TabBtn active={activeTab === 'grupos'} onPress={() => setActiveTab('grupos')}>
           <TabBtnText active={activeTab === 'grupos'}>Grupos</TabBtnText>
         </TabBtn>
-        <TabBtn active={activeTab === 'selecoes'} onPress={() => setActiveTab('selecoes')}>
-          <TabBtnText active={activeTab === 'selecoes'}>Seleções</TabBtnText>
-        </TabBtn>
         <TabBtn active={activeTab === 'artilheiros'} onPress={() => setActiveTab('artilheiros')}>
           <TabBtnText active={activeTab === 'artilheiros'}>Artilheiros</TabBtnText>
         </TabBtn>
@@ -393,7 +208,6 @@ export function CopaScreen() {
       {activeTab === 'grupos' && (
         <GruposTab groups={groups} refreshing={refreshing} onRefresh={handleRefresh} />
       )}
-      {activeTab === 'selecoes' && <SelecoesTab groups={groups} />}
       {activeTab === 'artilheiros' && <ArtilheirosTab />}
     </SafeAreaView>
   );
