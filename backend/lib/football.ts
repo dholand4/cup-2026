@@ -1,4 +1,4 @@
-const API_BASE   = 'https://api.football-data.org/v4';
+const API_BASE    = 'https://api.football-data.org/v4';
 const COMPETITION = 'WC'; // FIFA World Cup 2026
 
 function headers() {
@@ -7,14 +7,9 @@ function headers() {
   return { 'X-Auth-Token': key };
 }
 
-function dateOffset(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-}
-
-async function fetchMatches(params: string): Promise<any[]> {
-  const url = `${API_BASE}/competitions/${COMPETITION}/matches?${params}`;
+async function fetchAllMatches(): Promise<any[]> {
+  // Plano gratuito não permite filtros de status — busca todos de uma vez
+  const url = `${API_BASE}/competitions/${COMPETITION}/matches`;
   const res  = await fetch(url, { headers: headers() });
   if (!res.ok) {
     if (res.status === 429) throw new Error('rate_limit');
@@ -44,17 +39,15 @@ export interface MatchesPayload {
 }
 
 export async function getAllMatches(): Promise<MatchesPayload> {
-  const todayStr   = dateOffset(0);
-  const weekAgo    = dateOffset(-7);
-  const in30days   = dateOffset(30);
-  const tomorrow   = dateOffset(1);
+  const allMatches = await fetchAllMatches();
 
-  const [live, today, upcoming, recent] = await Promise.all([
-    fetchMatches('status=IN_PLAY,PAUSED'),
-    fetchMatches(`dateFrom=${todayStr}&dateTo=${todayStr}`),
-    fetchMatches(`dateFrom=${tomorrow}&dateTo=${in30days}&status=SCHEDULED,TIMED`),
-    fetchMatches(`dateFrom=${weekAgo}&dateTo=${todayStr}&status=FINISHED`),
-  ]);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const weekAgo  = new Date(Date.now() - 7 * 86_400_000).toISOString().split('T')[0];
+
+  const live     = allMatches.filter((m: any) => ['IN_PLAY', 'PAUSED'].includes(m.status));
+  const today    = allMatches.filter((m: any) => m.utcDate.startsWith(todayStr));
+  const upcoming = allMatches.filter((m: any) => ['SCHEDULED', 'TIMED'].includes(m.status) && m.utcDate > todayStr);
+  const recent   = allMatches.filter((m: any) => m.status === 'FINISHED' && m.utcDate.split('T')[0] >= weekAgo);
 
   return { live, today, upcoming, recent, hasLive: live.length > 0 };
 }
