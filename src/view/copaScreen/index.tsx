@@ -51,11 +51,13 @@ const POSITION_ORDER: Record<string, number> = {
 
 interface ITeamProfileProps {
   teamId: number | null;
+  teamBasic?: ITeam;
   onClose: () => void;
 }
 
-function TeamProfileModal({ teamId, onClose }: ITeamProfileProps) {
+function TeamProfileModal({ teamId, teamBasic, onClose }: ITeamProfileProps) {
   const { team, loading, error } = useTeamDetail(teamId);
+  const displayName = team?.name ?? teamBasic?.name ?? '';
 
   const squadByPosition = useMemo(() => {
     if (!team?.squad) return [];
@@ -75,6 +77,16 @@ function TeamProfileModal({ teamId, onClose }: ITeamProfileProps) {
             <ModalCloseText>Fechar</ModalCloseText>
           </ModalCloseBtn>
 
+          <ModalScroll showsVerticalScrollIndicator={false}>
+              {/* Header — mostra com dados básicos enquanto carrega */}
+              <TeamProfileHeader>
+                <CrestGlobal tla={team?.tla ?? teamBasic?.tla ?? ''} size={64} teamName={displayName} />
+                <TeamProfileName>{displayName}</TeamProfileName>
+                {team?.venue && (
+                  <TeamProfileDetail>🏟 {team.venue}</TeamProfileDetail>
+                )}
+              </TeamProfileHeader>
+
           {loading && (
             <View style={{ padding: 40, alignItems: 'center' }}>
               <ActivityIndicator color={theme.colors.accent.green} />
@@ -82,16 +94,7 @@ function TeamProfileModal({ teamId, onClose }: ITeamProfileProps) {
           )}
 
           {!loading && team && (
-            <ModalScroll showsVerticalScrollIndicator={false}>
-              {/* Header */}
-              <TeamProfileHeader>
-                <CrestGlobal tla={team.tla} size={64} teamName={team.name} />
-                <TeamProfileName>{team.name}</TeamProfileName>
-                {team.venue && (
-                  <TeamProfileDetail>🏟 {team.venue}</TeamProfileDetail>
-                )}
-              </TeamProfileHeader>
-
+            <>
               {/* Técnico */}
               {team.coach && (
                 <>
@@ -124,18 +127,19 @@ function TeamProfileModal({ teamId, onClose }: ITeamProfileProps) {
 
               {!team.coach && squadByPosition.length === 0 && (
                 <EmptyStateGlobal
-                  message="Dados do elenco disponíveis em breve"
+                  message={'Elenco e técnico serão\ndivulgados em breve\n\n📅 Copa 2026 · 11 Jun'}
                   icon="people-outline"
                 />
               )}
+            </>
+          )}
 
-              {error && (
-                <EmptyStateGlobal message="Não foi possível carregar" icon="wifi-outline" />
-              )}
+          {!loading && error && (
+            <EmptyStateGlobal message="Não foi possível carregar os dados" icon="wifi-outline" />
+          )}
 
               <BottomSpacer />
             </ModalScroll>
-          )}
         </ModalSheet>
       </ModalOverlay>
     </Modal>
@@ -282,6 +286,7 @@ interface ISelecoesTabProps {
 
 function SelecoesTab({ groups }: ISelecoesTabProps) {
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<ITeam | undefined>(undefined);
   const [search, setSearch] = useState('');
 
   // Extrai todos os times dos grupos com grupo e id
@@ -321,7 +326,7 @@ function SelecoesTab({ groups }: ISelecoesTabProps) {
       <ScrollView showsVerticalScrollIndicator={false}>
         <SearchBarGlobal value={search} onChangeText={setSearch} />
         {filtered.map(({ team, groupLabel }, i) => (
-          <TeamCard key={i} onPress={() => setSelectedTeamId(team.id)} activeOpacity={0.7}>
+          <TeamCard key={i} onPress={() => { setSelectedTeamId(team.id); setSelectedTeam(team); }} activeOpacity={0.7}>
             <CrestGlobal tla={team.tla} size={36} teamName={team.name} />
             <TeamCardInfo>
               <TeamCardName>{team.name}</TeamCardName>
@@ -335,7 +340,8 @@ function SelecoesTab({ groups }: ISelecoesTabProps) {
 
       <TeamProfileModal
         teamId={selectedTeamId}
-        onClose={() => setSelectedTeamId(null)}
+        teamBasic={selectedTeam}
+        onClose={() => { setSelectedTeamId(null); setSelectedTeam(undefined); }}
       />
     </>
   );
