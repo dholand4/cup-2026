@@ -53,3 +53,34 @@ export async function getAllMatches(): Promise<MatchesPayload> {
 }
 
 export { fetchStandings };
+
+export async function fetchScorers(): Promise<any[]> {
+  const url = `${API_BASE}/competitions/${COMPETITION}/scorers?limit=20`;
+  const res  = await fetch(url, { headers: headers() });
+  if (!res.ok) {
+    if (res.status === 429) throw new Error('rate_limit');
+    throw new Error(`football-data error ${res.status}`);
+  }
+  const data = await res.json();
+  return data.scorers ?? [];
+}
+
+export async function fetchTeamDetail(id: number): Promise<any> {
+  const url = `${API_BASE}/teams/${id}`;
+  const res  = await fetch(url, { headers: headers() });
+  if (!res.ok) {
+    if (res.status === 429) throw new Error('rate_limit');
+    throw new Error(`football-data error ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchMatchDetail(id: number): Promise<any> {
+  const url = `${API_BASE}/matches/${id}`;
+  const res  = await fetch(url, { headers: headers() });
+  if (!res.ok) {
+    if (res.status === 429) throw new Error('rate_limit');
+    throw new Error(`football-data error ${res.status}`);
+  }
+  return res.json();
+}

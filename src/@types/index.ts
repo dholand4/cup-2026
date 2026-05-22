@@ -77,3 +77,79 @@ export interface ICacheEntry<T> {
   data: T;
   timestamp: number;
 }
+
+// ── Artilheiros ───────────────────────────────────────────────────────
+export interface IScorer {
+  player: { id: number; name: string; nationality: string };
+  team: ITeam;
+  goals: number;
+  assists: number | null;
+  penalties: number | null;
+}
+
+// ── Detalhe de seleção ────────────────────────────────────────────────
+export interface IPlayer {
+  id: number;
+  name: string;
+  position: string | null;
+  dateOfBirth: string | null;
+  nationality: string | null;
+  shirtNumber: number | null;
+}
+
+export interface ICoach {
+  id: number;
+  name: string;
+  nationality: string | null;
+}
+
+export interface ITeamDetail {
+  id: number;
+  name: string;
+  shortName: string;
+  tla: string;
+  crest: string;
+  venue: string | null;
+  coach: ICoach | null;
+  squad: IPlayer[];
+}
+
+// ── Detalhe de jogo ───────────────────────────────────────────────────
+export interface IMatchGoal {
+  minute: number;
+  type: string;
+  team: { id: number; name: string };
+  scorer: { id: number; name: string } | null;
+  assist: { id: number; name: string } | null;
+}
+
+export interface IMatchBooking {
+  minute: number;
+  card: 'YELLOW' | 'RED' | 'YELLOW_RED';
+  team: { id: number; name: string };
+  player: { id: number; name: string } | null;
+}
+
+export interface IMatchSubstitution {
+  minute: number;
+  team: { id: number; name: string };
+  playerOut: { id: number; name: string } | null;
+  playerIn: { id: number; name: string } | null;
+}
+
+export interface ILineupPlayer {
+  id: number;
+  name: string;
+  position: string | null;
+  shirtNumber: number | null;
+}
+
+export interface IMatchDetail extends IMatch {
+  goals: IMatchGoal[];
+  bookings: IMatchBooking[];
+  substitutions: IMatchSubstitution[];
+  homeTeamLineup: ILineupPlayer[];
+  awayTeamLineup: ILineupPlayer[];
+  homeFormation: string | null;
+  awayFormation: string | null;
+}

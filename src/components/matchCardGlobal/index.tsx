@@ -1,4 +1,5 @@
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
 import { IMatch } from '../../@types';
 import { formatTime } from '../../utils/dateUtils';
 import { CrestGlobal } from '../crestGlobal';
@@ -38,6 +39,7 @@ interface IMatchCardGlobalProps {
   large?: boolean;
   compact?: boolean;
   showTeamNames?: boolean;
+  onPress?: () => void;
 }
 
 function getGroupLabel(match: IMatch): string {
@@ -49,7 +51,7 @@ function getGroupLabel(match: IMatch): string {
   return 'Copa 2026';
 }
 
-export function MatchCardGlobal({ match, large = false, compact = false, showTeamNames = false }: IMatchCardGlobalProps) {
+export function MatchCardGlobal({ match, large = false, compact = false, showTeamNames = false, onPress }: IMatchCardGlobalProps) {
   const { status, homeTeam, awayTeam, score, utcDate, goals } = match;
   const isLive = status === 'IN_PLAY' || status === 'PAUSED';
   const isFinal = status === 'FINISHED';
@@ -71,6 +73,7 @@ export function MatchCardGlobal({ match, large = false, compact = false, showTea
     const hasGoals = homeGoals.length > 0 || awayGoals.length > 0;
 
     return (
+      <TouchableOpacity onPress={onPress} activeOpacity={onPress ? 0.8 : 1}>
       <BigCard compact={compact}>
         <CornerAccent />
         <PitchCircle />
@@ -114,10 +117,12 @@ export function MatchCardGlobal({ match, large = false, compact = false, showTea
           </ScorersRow>
         )}
       </BigCard>
+      </TouchableOpacity>
     );
   }
 
   return (
+    <TouchableOpacity onPress={onPress} activeOpacity={onPress ? 0.8 : 1}>
     <Card highlighted={isLive} compact={compact}>
       {isLive && <LiveAccent />}
       <HeaderRow>
@@ -173,5 +178,6 @@ export function MatchCardGlobal({ match, large = false, compact = false, showTea
         );
       })()}
     </Card>
+    </TouchableOpacity>
   );
 }

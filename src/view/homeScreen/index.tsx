@@ -10,6 +10,7 @@ import { useNotifSettingsContext } from '../../providers/NotifSettingsProvider';
 import { NotifModalGlobal } from '../../components/notifModalGlobal';
 import { MatchRowGlobal } from '../../components/matchRowGlobal';
 import { MatchCardGlobal } from '../../components/matchCardGlobal';
+import { MatchDetailModalGlobal } from '../../components/matchDetailModalGlobal';
 import { EmptyStateGlobal } from '../../components/emptyStateGlobal';
 import { SearchBarGlobal } from '../../components/searchBarGlobal';
 import { groupByDate, formatDayShort, isToday } from '../../utils/dateUtils';
@@ -91,6 +92,7 @@ export function HomeScreen() {
   const [search, setSearch]           = useState('');
   const [showFavs, setShowFavs]       = useState(false);
   const [notifModalOpen, setNotifModalOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<IMatch | null>(null);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -219,7 +221,16 @@ export function HomeScreen() {
               <TodayDateBadge>{getTodayLabel()}</TodayDateBadge>
             </SectionHeader>
             <CardList>
-              {live.map(m => <MatchCardGlobal key={m.id} match={m} large compact showTeamNames />)}
+              {live.map(m => (
+                <MatchCardGlobal
+                  key={m.id}
+                  match={m}
+                  large
+                  compact
+                  showTeamNames
+                  onPress={() => setSelectedMatch(m)}
+                />
+              ))}
             </CardList>
             <TodayDivider />
           </TodaySection>
@@ -314,6 +325,7 @@ export function HomeScreen() {
                     match={match}
                     homeFav={isFavorite(match.homeTeam.tla ?? '')}
                     awayFav={isFavorite(match.awayTeam.tla ?? '')}
+                    onPress={() => setSelectedMatch(match)}
                   />
                 ))}
               </CardList>
@@ -327,6 +339,10 @@ export function HomeScreen() {
       <NotifModalGlobal
         visible={notifModalOpen}
         onClose={() => setNotifModalOpen(false)}
+      />
+      <MatchDetailModalGlobal
+        match={selectedMatch}
+        onClose={() => setSelectedMatch(null)}
       />
     </SafeAreaView>
   );

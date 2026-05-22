@@ -1,6 +1,6 @@
 import styled from 'styled-components/native';
 
-export const Row = styled.View<{ live?: boolean; finished?: boolean }>`
+export const Row = styled.TouchableOpacity<{ live?: boolean; finished?: boolean }>`
   background-color: ${({ live, finished, theme }) => {
     if (live) return 'rgba(255,59,59,0.06)';
     if (finished) return 'rgba(0,165,80,0.06)';

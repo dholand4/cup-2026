@@ -9,17 +9,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RootTabParamList } from './types';
 import { HomeScreen } from '../view/homeScreen';
 import { PalpitesScreen } from '../view/palpitesScreen';
-import { GroupsScreen } from '../view/groupsScreen';
+import { CopaScreen } from '../view/copaScreen';
 import { theme } from '../constants/theme';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 const TAB_CONFIG = [
   {
-    name: 'GroupsScreen' as const,
-    label: 'Grupos',
-    iconActive: 'podium' as const,
-    iconInactive: 'podium-outline' as const,
+    name: 'CopaScreen' as const,
+    label: 'Copa',
+    iconActive: 'trophy' as const,
+    iconInactive: 'trophy-outline' as const,
   },
   {
     name: 'HomeScreen' as const,
@@ -30,8 +30,8 @@ const TAB_CONFIG = [
   {
     name: 'PalpitesScreen' as const,
     label: 'Palpites',
-    iconActive: 'trophy' as const,
-    iconInactive: 'trophy-outline' as const,
+    iconActive: 'podium' as const,
+    iconInactive: 'podium-outline' as const,
   },
 ];
 
@@ -110,7 +110,7 @@ export function AppNavigator() {
         screenOptions={{ headerShown: false }}
         initialRouteName="HomeScreen"
       >
-        <Tab.Screen name="GroupsScreen" component={GroupsScreen} />
+        <Tab.Screen name="CopaScreen" component={CopaScreen} />
         <Tab.Screen name="HomeScreen" component={HomeScreen} initialParams={{}} />
         <Tab.Screen name="PalpitesScreen" component={PalpitesScreen} />
       </Tab.Navigator>

@@ -28,9 +28,10 @@ interface IMatchRowGlobalProps {
   match: IMatch;
   homeFav?: boolean;
   awayFav?: boolean;
+  onPress?: () => void;
 }
 
-export function MatchRowGlobal({ match, homeFav = false, awayFav = false }: IMatchRowGlobalProps) {
+export function MatchRowGlobal({ match, homeFav = false, awayFav = false, onPress }: IMatchRowGlobalProps) {
   const { homeTeam, awayTeam, utcDate, group, stage, status, score, goals } = match;
   const isLive = status === 'IN_PLAY' || status === 'PAUSED';
   const isFinal = status === 'FINISHED';
@@ -64,7 +65,7 @@ export function MatchRowGlobal({ match, homeFav = false, awayFav = false }: IMat
   };
 
   return (
-    <Row live={isLive} finished={isFinal}>
+    <Row live={isLive} finished={isFinal} onPress={onPress} activeOpacity={onPress ? 0.7 : 1}>
       {isLive && <LiveAccent />}
       {isFinal && <FinishedAccent />}
       <RowMain>
