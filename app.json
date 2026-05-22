@@ -27,7 +27,19 @@
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
-      "bundler": "webpack"
+      "bundler": "webpack",
+      "favicon": "./src/assets/LOGO DQ.png",
+      "name": "Copa 2026",
+      "shortName": "Copa 26",
+      "description": "Acompanhe a Copa do Mundo FIFA 2026 em tempo real — jogos ao vivo, grupos, palpites e artilheiros",
+      "backgroundColor": "#0A0E1A",
+      "themeColor": "#00A550",
+      "lang": "pt-BR",
+      "meta": {
+        "apple-mobile-web-app-capable": "yes",
+        "apple-mobile-web-app-status-bar-style": "black-translucent",
+        "apple-mobile-web-app-title": "Copa 26"
+      }
     },
     "plugins": [
       "expo-font",
