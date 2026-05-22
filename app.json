@@ -39,6 +39,12 @@
           "sounds": []
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "22b58112-369d-4cd4-866b-8999758b4f13"
+      }
+    },
+    "owner": "dholand4"
   }
 }
