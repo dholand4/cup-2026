@@ -446,3 +446,206 @@ export const TeamPickerName = styled.Text`
 export const BottomSpacer = styled.View`
   height: 180px;
 `;
+
+// ── Liga / Ranking ─────────────────────────────────────────────────────
+
+export const NoLigaContainer = styled.View`
+  margin: 32px 20px 0;
+  align-items: center;
+`;
+
+export const NoLigaTitle = styled.Text`
+  font-family: Manrope_700Bold;
+  font-size: 17px;
+  color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: 8px;
+  text-align: center;
+`;
+
+export const NoLigaSubtitle = styled.Text`
+  font-family: Manrope_400Regular;
+  font-size: 13px;
+  color: ${({ theme }) => theme.colors.text.secondary};
+  text-align: center;
+  line-height: 20px;
+  margin-bottom: 28px;
+`;
+
+export const LigaActionBtn = styled.TouchableOpacity<{ outline?: boolean }>`
+  width: 100%;
+  padding: 14px;
+  border-radius: ${({ theme }) => theme.borderRadius.md}px;
+  align-items: center;
+  margin-bottom: 10px;
+  background-color: ${({ outline, theme }) =>
+    outline ? 'transparent' : theme.colors.accent.green};
+  border-width: ${({ outline }) => outline ? '1.5px' : '0px'};
+  border-color: ${({ theme }) => theme.colors.accent.green};
+`;
+
+export const LigaActionBtnText = styled.Text<{ outline?: boolean }>`
+  font-family: Manrope_700Bold;
+  font-size: 15px;
+  color: ${({ outline, theme }) =>
+    outline ? theme.colors.accent.green : theme.colors.background.primary};
+`;
+
+export const LigaModalOverlay = styled.View`
+  flex: 1;
+  background-color: rgba(0,0,0,0.7);
+  justify-content: flex-end;
+`;
+
+export const LigaModalSheet = styled.View`
+  background-color: ${({ theme }) => theme.colors.background.secondary};
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 24px 20px 40px;
+`;
+
+export const LigaModalTitle = styled.Text`
+  font-family: Manrope_700Bold;
+  font-size: 18px;
+  color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: 20px;
+  text-align: center;
+`;
+
+export const LigaInput = styled.TextInput`
+  background-color: ${({ theme }) => theme.colors.background.primary};
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.md}px;
+  padding: 12px 14px;
+  font-family: Manrope_400Regular;
+  font-size: 14px;
+  color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: 12px;
+`;
+
+export const LigaInputLabel = styled.Text`
+  font-family: Manrope_600SemiBold;
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.text.secondary};
+  margin-bottom: 6px;
+`;
+
+export const LigaModalError = styled.Text`
+  font-family: Manrope_400Regular;
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.error};
+  text-align: center;
+  margin-bottom: 8px;
+`;
+
+export const LigaCard = styled.View`
+  margin: 16px 20px 0;
+  background-color: ${({ theme }) => theme.colors.background.secondary};
+  border-radius: ${({ theme }) => theme.borderRadius.lg}px;
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.border};
+  padding: 16px;
+`;
+
+export const LigaCardHeader = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+`;
+
+export const LigaName = styled.Text`
+  font-family: Manrope_700Bold;
+  font-size: 16px;
+  color: ${({ theme }) => theme.colors.text.primary};
+`;
+
+export const LigaCodeRow = styled.TouchableOpacity`
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+`;
+
+export const LigaCodeLabel = styled.Text`
+  font-family: Manrope_600SemiBold;
+  font-size: 11px;
+  color: ${({ theme }) => theme.colors.text.muted};
+`;
+
+export const LigaCodeValue = styled.Text`
+  font-family: Anton_400Regular;
+  font-size: 16px;
+  color: ${({ theme }) => theme.colors.accent.green};
+  letter-spacing: 2px;
+`;
+
+export const LigaLeaveBtn = styled.TouchableOpacity`
+  padding: 4px 8px;
+`;
+
+export const LigaLeaveBtnText = styled.Text`
+  font-family: Manrope_600SemiBold;
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.text.muted};
+`;
+
+export const RankingRow = styled.View<{ isMe: boolean }>`
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom-width: 1px;
+  border-bottom-color: ${({ theme }) => theme.colors.border};
+  background-color: ${({ isMe, theme }) =>
+    isMe ? `${theme.colors.accent.green}11` : 'transparent'};
+`;
+
+export const RankPosition = styled.Text<{ top: boolean }>`
+  font-family: Anton_400Regular;
+  font-size: 18px;
+  color: ${({ top, theme }) => top ? theme.colors.accent.gold : theme.colors.text.muted};
+  width: 32px;
+  text-align: center;
+`;
+
+export const RankApelido = styled.Text<{ isMe: boolean }>`
+  flex: 1;
+  font-family: Manrope_600SemiBold;
+  font-size: 14px;
+  color: ${({ isMe, theme }) =>
+    isMe ? theme.colors.accent.green : theme.colors.text.primary};
+`;
+
+export const RankMeTag = styled.Text`
+  font-family: Manrope_700Bold;
+  font-size: 10px;
+  color: ${({ theme }) => theme.colors.accent.green};
+  margin-left: 4px;
+`;
+
+export const RankPoints = styled.Text`
+  font-family: Anton_400Regular;
+  font-size: 16px;
+  color: ${({ theme }) => theme.colors.accent.gold};
+  min-width: 40px;
+  text-align: right;
+`;
+
+export const GuestBanner = styled.View`
+  margin: 32px 20px 0;
+  background-color: ${({ theme }) => theme.colors.background.secondary};
+  border-radius: ${({ theme }) => theme.borderRadius.lg}px;
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.border};
+  padding: 24px 20px;
+  align-items: center;
+`;
+
+export const GuestBannerText = styled.Text`
+  font-family: Manrope_400Regular;
+  font-size: 14px;
+  color: ${({ theme }) => theme.colors.text.secondary};
+  text-align: center;
+  line-height: 22px;
+  margin-bottom: 20px;
+`;

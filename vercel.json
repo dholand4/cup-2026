@@ -1,5 +1,5 @@
 {
-  "buildCommand": "EXPO_PUBLIC_BACKEND_URL=https://copa2026-backend.vercel.app npm run build:web",
+  "buildCommand": "EXPO_PUBLIC_BACKEND_URL=https://copa2026-backend.vercel.app EXPO_PUBLIC_SUPABASE_URL=https://ssnbobxmyhetdduvttmo.supabase.co EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_EzJi_v-Ms4MnvOXwwrrrgw_5lS0wFNl npm run build:web",
   "outputDirectory": "web-build",
   "framework": null,
   "rewrites": [

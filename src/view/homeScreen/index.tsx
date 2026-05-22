@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { IMatch } from '../../@types';
@@ -7,6 +7,7 @@ import { useMatchesContext } from '../../providers/MatchesProvider';
 import { useMatchNotifications } from '../../hooks/useMatchNotifications';
 import { useFavoritesContext } from '../../providers/FavoritesProvider';
 import { useNotifSettingsContext } from '../../providers/NotifSettingsProvider';
+import { useAuth } from '../../providers/AuthProvider';
 import { NotifModalGlobal } from '../../components/notifModalGlobal';
 import { MatchRowGlobal } from '../../components/matchRowGlobal';
 import { MatchCardGlobal } from '../../components/matchCardGlobal';
@@ -42,6 +43,7 @@ import {
   FilterTabs,
   BellButton,
   FavBadge,
+  HeaderIcons,
 } from './style';
 
 // ── helpers ────────────────────────────────────────────────────────────
@@ -87,6 +89,7 @@ export function HomeScreen() {
   const { live, today, upcoming, recent, loading, error, refresh } = useMatchesContext();
   const { favorites, isFavorite }     = useFavoritesContext();
   const { notifyFavorites, notifyAll } = useNotifSettingsContext();
+  const { user, isGuest, signOut }     = useAuth();
 
   const [refreshing, setRefreshing]   = useState(false);
   const [search, setSearch]           = useState('');
@@ -158,6 +161,28 @@ export function HomeScreen() {
 
   const hasFavNotif = notifyFavorites || notifyAll;
 
+  const handleProfilePress = () => {
+    if (isGuest) {
+      Alert.alert(
+        'Você é visitante',
+        'Crie uma conta para participar de ligas com seus amigos.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Sair', style: 'destructive', onPress: () => signOut() },
+        ],
+      );
+    } else {
+      Alert.alert(
+        user?.email ?? 'Minha conta',
+        'O que deseja fazer?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Sair', style: 'destructive', onPress: () => signOut() },
+        ],
+      );
+    }
+  };
+
   if (loading && !refreshing) {
     return (
       <Screen>
@@ -202,14 +227,23 @@ export function HomeScreen() {
               <WordmarkYear>26</WordmarkYear>
             </Wordmark>
           </HeaderRight>
-          <BellButton onPress={() => setNotifModalOpen(true)}>
-            <Ionicons
-              name={hasFavNotif ? 'notifications' : 'notifications-outline'}
-              size={20}
-              color={hasFavNotif ? theme.colors.accent.gold : theme.colors.text.mid}
-            />
-            {hasFavNotif && <FavBadge />}
-          </BellButton>
+          <HeaderIcons>
+            <BellButton onPress={handleProfilePress}>
+              <Ionicons
+                name={isGuest ? 'person-outline' : 'person'}
+                size={18}
+                color={isGuest ? theme.colors.text.secondary : theme.colors.accent.green}
+              />
+            </BellButton>
+            <BellButton onPress={() => setNotifModalOpen(true)}>
+              <Ionicons
+                name={hasFavNotif ? 'notifications' : 'notifications-outline'}
+                size={20}
+                color={hasFavNotif ? theme.colors.accent.gold : theme.colors.text.mid}
+              />
+              {hasFavNotif && <FavBadge />}
+            </BellButton>
+          </HeaderIcons>
           <SubTitle>FIFA Copa do Mundo 2026</SubTitle>
         </Header>
 

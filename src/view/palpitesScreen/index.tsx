@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import {
   ScrollView, RefreshControl, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Modal, FlatList, TouchableOpacity,
+  KeyboardAvoidingView, Platform, Modal, FlatList, TouchableOpacity, Alert, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,8 @@ import { EmptyStateGlobal } from '../../components/emptyStateGlobal';
 import { isToday, formatDayShort, formatTime } from '../../utils/dateUtils';
 import { ALL_TEAMS, ITeamOption } from '../../utils/allTeams';
 import { theme } from '../../constants/theme';
+import { useAuth } from '../../providers/AuthProvider';
+import { useLiga } from '../../hooks/useLiga';
 import {
   Screen, Header, WordmarkCopa, WordmarkYear, Wordmark, SubTitle,
   StatsBar, StatChip, StatValue, StatLabel,
@@ -31,9 +33,17 @@ import {
   PickerOverlay, PickerSheet, PickerHeader, PickerTitle,
   PickerClose, PickerCloseText, SearchInput, TeamPickerRow,
   TeamPickerTLA, TeamPickerName, BottomSpacer,
+  NoLigaContainer, NoLigaTitle, NoLigaSubtitle,
+  LigaActionBtn, LigaActionBtnText,
+  LigaModalOverlay, LigaModalSheet, LigaModalTitle,
+  LigaInput, LigaInputLabel, LigaModalError,
+  LigaCard, LigaCardHeader, LigaName, LigaCodeRow, LigaCodeLabel, LigaCodeValue,
+  LigaLeaveBtn, LigaLeaveBtnText,
+  RankingRow, RankPosition, RankApelido, RankMeTag, RankPoints,
+  GuestBanner, GuestBannerText,
 } from './style';
 
-type ActiveTab = 'jogos' | 'bracket';
+type ActiveTab = 'jogos' | 'bracket' | 'ranking';
 
 // ── helpers ───────────────────────────────────────────────────────────
 
@@ -310,6 +320,194 @@ function BracketTab({ bracket, locked, actual, onSave, onRemove }: IBracketTabPr
   );
 }
 
+// ── RankingTab ─────────────────────────────────────────────────────────
+
+function RankingTab() {
+  const { user, isGuest, signOut } = useAuth();
+  const { liga, ranking, loading, createLiga, joinLiga, leaveLiga, refresh } = useLiga(user?.id);
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [showJoin,   setShowJoin]   = useState(false);
+  const [ligaNome,   setLigaNome]   = useState('');
+  const [ligaCodigo, setLigaCodigo] = useState('');
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError,   setModalError]   = useState<string | null>(null);
+
+  const handleCreate = useCallback(async () => {
+    if (!ligaNome.trim()) { setModalError('Digite um nome para a liga.'); return; }
+    setModalLoading(true);
+    setModalError(null);
+    const err = await createLiga(ligaNome);
+    setModalLoading(false);
+    if (err) { setModalError(err); return; }
+    setShowCreate(false);
+    setLigaNome('');
+  }, [ligaNome, createLiga]);
+
+  const handleJoin = useCallback(async () => {
+    if (!ligaCodigo.trim()) { setModalError('Digite o código da liga.'); return; }
+    setModalLoading(true);
+    setModalError(null);
+    const err = await joinLiga(ligaCodigo);
+    setModalLoading(false);
+    if (err) { setModalError(err); return; }
+    setShowJoin(false);
+    setLigaCodigo('');
+  }, [ligaCodigo, joinLiga]);
+
+  const handleShare = useCallback(async () => {
+    if (!liga) return;
+    await Share.share({
+      message: `Entre na minha liga Copa 2026!\nCódigo: ${liga.codigo}`,
+    });
+  }, [liga]);
+
+  const handleLeave = useCallback(() => {
+    Alert.alert(
+      'Sair da liga',
+      liga?.criador_id === user?.id
+        ? 'Você é o criador. A liga será excluída para todos.'
+        : 'Tem certeza que quer sair desta liga?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: leaveLiga },
+      ],
+    );
+  }, [liga, user, leaveLiga]);
+
+  // Visitante
+  if (isGuest) {
+    return (
+      <GuestBanner>
+        <GuestBannerText>
+          {'Crie uma conta para participar\nde ligas com seus amigos\ne ver o ranking! 🏆'}
+        </GuestBannerText>
+        <LigaActionBtn onPress={signOut}>
+          <LigaActionBtnText>Criar conta ou entrar</LigaActionBtnText>
+        </LigaActionBtn>
+      </GuestBanner>
+    );
+  }
+
+  // Carregando
+  if (loading) {
+    return (
+      <NoLigaContainer>
+        <ActivityIndicator color={theme.colors.accent.green} />
+      </NoLigaContainer>
+    );
+  }
+
+  // Sem liga
+  if (!liga) {
+    return (
+      <>
+        <NoLigaContainer>
+          <NoLigaTitle>Nenhuma liga ainda</NoLigaTitle>
+          <NoLigaSubtitle>
+            {'Crie uma liga e compartilhe o código\ncom seus amigos para competir!'}
+          </NoLigaSubtitle>
+          <LigaActionBtn onPress={() => { setModalError(null); setShowCreate(true); }}>
+            <LigaActionBtnText>Criar liga</LigaActionBtnText>
+          </LigaActionBtn>
+          <LigaActionBtn outline onPress={() => { setModalError(null); setShowJoin(true); }}>
+            <LigaActionBtnText outline>Entrar com código</LigaActionBtnText>
+          </LigaActionBtn>
+        </NoLigaContainer>
+
+        {/* Modal Criar */}
+        <Modal visible={showCreate} transparent animationType="slide">
+          <LigaModalOverlay>
+            <LigaModalSheet>
+              <LigaModalTitle>Nova Liga</LigaModalTitle>
+              <LigaInputLabel>Nome da liga</LigaInputLabel>
+              <LigaInput
+                value={ligaNome}
+                onChangeText={setLigaNome}
+                placeholder="Ex: Família, Trampo..."
+                placeholderTextColor={theme.colors.text.muted}
+                autoFocus
+                maxLength={30}
+              />
+              {modalError && <LigaModalError>{modalError}</LigaModalError>}
+              <LigaActionBtn onPress={handleCreate} disabled={modalLoading}>
+                {modalLoading
+                  ? <ActivityIndicator color={theme.colors.background.primary} />
+                  : <LigaActionBtnText>Criar</LigaActionBtnText>
+                }
+              </LigaActionBtn>
+              <LigaActionBtn outline onPress={() => setShowCreate(false)}>
+                <LigaActionBtnText outline>Cancelar</LigaActionBtnText>
+              </LigaActionBtn>
+            </LigaModalSheet>
+          </LigaModalOverlay>
+        </Modal>
+
+        {/* Modal Entrar */}
+        <Modal visible={showJoin} transparent animationType="slide">
+          <LigaModalOverlay>
+            <LigaModalSheet>
+              <LigaModalTitle>Entrar na Liga</LigaModalTitle>
+              <LigaInputLabel>Código da liga</LigaInputLabel>
+              <LigaInput
+                value={ligaCodigo}
+                onChangeText={t => setLigaCodigo(t.toUpperCase())}
+                placeholder="Ex: AB3X7K"
+                placeholderTextColor={theme.colors.text.muted}
+                autoCapitalize="characters"
+                autoFocus
+                maxLength={6}
+              />
+              {modalError && <LigaModalError>{modalError}</LigaModalError>}
+              <LigaActionBtn onPress={handleJoin} disabled={modalLoading}>
+                {modalLoading
+                  ? <ActivityIndicator color={theme.colors.background.primary} />
+                  : <LigaActionBtnText>Entrar</LigaActionBtnText>
+                }
+              </LigaActionBtn>
+              <LigaActionBtn outline onPress={() => setShowJoin(false)}>
+                <LigaActionBtnText outline>Cancelar</LigaActionBtnText>
+              </LigaActionBtn>
+            </LigaModalSheet>
+          </LigaModalOverlay>
+        </Modal>
+      </>
+    );
+  }
+
+  // Ranking
+  return (
+    <LigaCard>
+      <LigaCardHeader>
+        <LigaName>{liga.nome}</LigaName>
+        <LigaLeaveBtn onPress={handleLeave}>
+          <LigaLeaveBtnText>Sair</LigaLeaveBtnText>
+        </LigaLeaveBtn>
+      </LigaCardHeader>
+
+      <LigaCodeRow onPress={handleShare}>
+        <LigaCodeLabel>CÓDIGO</LigaCodeLabel>
+        <LigaCodeValue>{liga.codigo}</LigaCodeValue>
+        <Ionicons name="share-outline" size={14} color={theme.colors.accent.green} />
+      </LigaCodeRow>
+
+      {ranking.map((m, i) => {
+        const isMe = m.usuario_id === user?.id;
+        return (
+          <RankingRow key={m.usuario_id} isMe={isMe}>
+            <RankPosition top={i < 3}>{i + 1}</RankPosition>
+            <RankApelido isMe={isMe}>
+              {m.apelido}
+              {isMe && <RankMeTag> (você)</RankMeTag>}
+            </RankApelido>
+            <RankPoints>{m.pontos} pts</RankPoints>
+          </RankingRow>
+        );
+      })}
+    </LigaCard>
+  );
+}
+
 // ── PalpitesScreen ─────────────────────────────────────────────────────
 
 export function PalpitesScreen() {
@@ -439,6 +637,9 @@ export function PalpitesScreen() {
             <TabBtn active={activeTab === 'bracket'} onPress={() => setActiveTab('bracket')}>
               <TabBtnText active={activeTab === 'bracket'}>Fase Final</TabBtnText>
             </TabBtn>
+            <TabBtn active={activeTab === 'ranking'} onPress={() => setActiveTab('ranking')}>
+              <TabBtnText active={activeTab === 'ranking'}>Liga</TabBtnText>
+            </TabBtn>
           </TabSwitcher>
 
           {activeTab === 'jogos' && (
@@ -520,6 +721,8 @@ export function PalpitesScreen() {
               onRemove={removeBracket}
             />
           )}
+
+          {activeTab === 'ranking' && <RankingTab />}
 
           <BottomSpacer />
         </ScrollView>

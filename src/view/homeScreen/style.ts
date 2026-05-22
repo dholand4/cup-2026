@@ -355,7 +355,13 @@ export const TodayDateBadge = styled.Text`
   color: ${({ theme }) => theme.colors.text.secondary};
 `;
 
-// ── Bell button (header) ──────────────────────────────────────────────
+// ── Header icons (bell + profile) ────────────────────────────────────
+
+export const HeaderIcons = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+`;
 
 export const BellButton = styled(TouchableOpacity)`
   width: 34px;

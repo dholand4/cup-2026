@@ -24,7 +24,9 @@ import { TooltipProvider } from './src/providers/TooltipProvider';
 import { FavoritesProvider } from './src/providers/FavoritesProvider';
 import { NotifSettingsProvider } from './src/providers/NotifSettingsProvider';
 import { MatchesProvider } from './src/providers/MatchesProvider';
+import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AppNavigator } from './src/routes';
+import { AuthScreen } from './src/view/authScreen';
 import { theme } from './src/constants/theme';
 
 // Show notifications even when the app is in foreground
@@ -37,6 +39,26 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+function RootNavigator() {
+  const { session, isGuest, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{
+        flex: 1,
+        backgroundColor: theme.colors.background.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <ActivityIndicator size="large" color={theme.colors.accent.green} />
+      </View>
+    );
+  }
+
+  if (!session && !isGuest) return <AuthScreen />;
+  return <AppNavigator />;
+}
 
 export default function App() {
   const [storageReady, setStorageReady] = useState(false);
@@ -78,16 +100,18 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <FavoritesProvider>
-          <NotifSettingsProvider>
-            <MatchesProvider>
-              <StatusBar style="light" backgroundColor={theme.colors.background.primary} />
-              <TooltipProvider>
-                <AppNavigator />
-              </TooltipProvider>
-            </MatchesProvider>
-          </NotifSettingsProvider>
-        </FavoritesProvider>
+        <AuthProvider>
+          <FavoritesProvider>
+            <NotifSettingsProvider>
+              <MatchesProvider>
+                <StatusBar style="light" backgroundColor={theme.colors.background.primary} />
+                <TooltipProvider>
+                  <RootNavigator />
+                </TooltipProvider>
+              </MatchesProvider>
+            </NotifSettingsProvider>
+          </FavoritesProvider>
+        </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
