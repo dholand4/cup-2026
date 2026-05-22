@@ -356,12 +356,11 @@ export function PalpitesScreen() {
   const wrong        = finished.filter(m => getPalpiteResult(palpites[m.id], m.score.fullTime.home, m.score.fullTime.away, m.status) === 'wrong').length;
   const gamePoints   = exact * 3 + winner * 1;
 
-  // Bracket locks as soon as any knockout stage match exists (group stage ended)
+  // Bracket locks only when a knockout stage match actually starts (not merely scheduled)
   const bracketLocked = useMemo(() =>
     allMatches.some(m =>
       NON_GROUP_STAGES.includes(m.stage ?? '') &&
-      m.status !== 'POSTPONED' &&
-      m.status !== 'CANCELLED',
+      ['IN_PLAY', 'PAUSED', 'FINISHED'].includes(m.status),
     ),
   [allMatches]);
 
