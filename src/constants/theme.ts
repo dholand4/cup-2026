@@ -1,0 +1,63 @@
+export const theme = {
+  colors: {
+    background: {
+      primary: '#0A0E1A',
+      secondary: '#111827',
+      card: '#111827',
+      cardAlt: '#0F1828',
+      elevated: '#1A2332',
+    },
+    accent: {
+      green: '#00A550',
+      greenDim: '#00A55022',
+      gold: '#FFD700',
+      live: '#FF3B3B',
+      scheduled: '#7DB3FF',
+    },
+    text: {
+      primary: '#FFFFFF',
+      mid: '#C7D0DC',
+      secondary: '#8899AA',
+      muted: '#4A5568',
+    },
+    border: '#1E2D40',
+    borderHi: '#2A3D55',
+    success: '#00A550',
+    error: '#FF3B3B',
+  },
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+    xxl: 48,
+  },
+  borderRadius: {
+    sm: 6,
+    md: 10,
+    lg: 16,
+    full: 999,
+  },
+  typography: {
+    scoreGiant: { fontSize: 64, fontFamily: 'Anton_400Regular' as const },
+    scoreLarge: { fontSize: 44, fontFamily: 'Anton_400Regular' as const },
+    scoreMid: { fontSize: 26, fontFamily: 'Anton_400Regular' as const },
+    wordmark: { fontSize: 28, fontFamily: 'Anton_400Regular' as const },
+    tla: { fontSize: 18, fontFamily: 'Anton_400Regular' as const },
+    tlaSmall: { fontSize: 14, fontFamily: 'Anton_400Regular' as const },
+    minute: { fontSize: 18, fontFamily: 'Anton_400Regular' as const },
+    groupLetter: { fontSize: 28, fontFamily: 'Anton_400Regular' as const },
+    h1: { fontSize: 24, fontFamily: 'Manrope_700Bold' as const },
+    h2: { fontSize: 18, fontFamily: 'Manrope_700Bold' as const },
+    h3: { fontSize: 15, fontFamily: 'Manrope_600SemiBold' as const },
+    body: { fontSize: 14, fontFamily: 'Manrope_400Regular' as const },
+    bodyMedium: { fontSize: 13, fontFamily: 'Manrope_600SemiBold' as const },
+    small: { fontSize: 12, fontFamily: 'Manrope_600SemiBold' as const },
+    caption: { fontSize: 11, fontFamily: 'Manrope_800ExtraBold' as const },
+    label: { fontSize: 10, fontFamily: 'Manrope_700Bold' as const },
+    micro: { fontSize: 9, fontFamily: 'Manrope_800ExtraBold' as const },
+  },
+} as const;
+
+export type ITheme = typeof theme;
