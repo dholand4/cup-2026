@@ -13,3 +13,6 @@ npm-debug.*
 
 # Claude
 .claude/
+
+.vercel
+.env*
