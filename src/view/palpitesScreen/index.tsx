@@ -41,6 +41,8 @@ import {
   LigaLeaveBtn, LigaLeaveBtnText,
   RankingRow, RankPosition, RankApelido, RankMeTag, RankPoints,
   GuestBanner, GuestBannerText,
+  LigaListContainer, LigaListItem, LigaListItemName, LigaListItemCode,
+  LigaActionsRow, LigaActionSmallBtn, LigaActionSmallBtnText,
 } from './style';
 
 type ActiveTab = 'jogos' | 'bracket' | 'ranking';
@@ -323,59 +325,61 @@ function BracketTab({ bracket, locked, actual, onSave, onRemove }: IBracketTabPr
 // ── RankingTab ─────────────────────────────────────────────────────────
 
 function RankingTab() {
-  const { user, isGuest, signOut } = useAuth();
-  const { liga, ranking, loading, createLiga, joinLiga, leaveLiga, refresh } = useLiga(user?.id);
+  const { user, isGuest, signOut }                                               = useAuth();
+  const { ligas, selectedLiga, ranking, loading, selectLiga,
+          createLiga, joinLiga, leaveLiga }                                       = useLiga(user?.id);
 
-  const [showCreate, setShowCreate] = useState(false);
-  const [showJoin,   setShowJoin]   = useState(false);
-  const [ligaNome,   setLigaNome]   = useState('');
-  const [ligaCodigo, setLigaCodigo] = useState('');
+  const [showCreate,   setShowCreate]   = useState(false);
+  const [showJoin,     setShowJoin]     = useState(false);
+  const [ligaNome,     setLigaNome]     = useState('');
+  const [ligaCodigo,   setLigaCodigo]   = useState('');
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError,   setModalError]   = useState<string | null>(null);
 
+  const openCreate = useCallback(() => { setModalError(null); setLigaNome('');   setShowCreate(true); }, []);
+  const openJoin   = useCallback(() => { setModalError(null); setLigaCodigo(''); setShowJoin(true);   }, []);
+
   const handleCreate = useCallback(async () => {
     if (!ligaNome.trim()) { setModalError('Digite um nome para a liga.'); return; }
-    setModalLoading(true);
-    setModalError(null);
+    setModalLoading(true); setModalError(null);
     const err = await createLiga(ligaNome);
     setModalLoading(false);
     if (err) { setModalError(err); return; }
     setShowCreate(false);
-    setLigaNome('');
   }, [ligaNome, createLiga]);
 
   const handleJoin = useCallback(async () => {
     if (!ligaCodigo.trim()) { setModalError('Digite o código da liga.'); return; }
-    setModalLoading(true);
-    setModalError(null);
+    setModalLoading(true); setModalError(null);
     const err = await joinLiga(ligaCodigo);
     setModalLoading(false);
     if (err) { setModalError(err); return; }
     setShowJoin(false);
-    setLigaCodigo('');
   }, [ligaCodigo, joinLiga]);
 
   const handleShare = useCallback(async () => {
-    if (!liga) return;
-    await Share.share({
-      message: `Entre na minha liga Copa 2026!\nCódigo: ${liga.codigo}`,
-    });
-  }, [liga]);
+    if (!selectedLiga) return;
+    await Share.share({ message: `Entre na minha liga Copa 2026!\nCódigo: ${selectedLiga.codigo}` });
+  }, [selectedLiga]);
 
-  const handleLeave = useCallback(() => {
+  const handleLeave = useCallback((liga: typeof selectedLiga) => {
+    if (!liga) return;
     Alert.alert(
       'Sair da liga',
-      liga?.criador_id === user?.id
+      liga.criador_id === user?.id
         ? 'Você é o criador. A liga será excluída para todos.'
         : 'Tem certeza que quer sair desta liga?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sair', style: 'destructive', onPress: leaveLiga },
+        { text: 'Sair', style: 'destructive', onPress: async () => {
+          const err = await leaveLiga(liga);
+          if (err) Alert.alert('Erro', err);
+        }},
       ],
     );
-  }, [liga, user, leaveLiga]);
+  }, [user, leaveLiga]);
 
-  // Visitante
+  // ── Visitante ──────────────────────────────────────────────────────────
   if (isGuest) {
     return (
       <GuestBanner>
@@ -389,122 +393,134 @@ function RankingTab() {
     );
   }
 
-  // Carregando
+  // ── Carregando ─────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <NoLigaContainer>
-        <ActivityIndicator color={theme.colors.accent.green} />
-      </NoLigaContainer>
-    );
+    return <NoLigaContainer><ActivityIndicator color={theme.colors.accent.green} /></NoLigaContainer>;
   }
 
-  // Sem liga
-  if (!liga) {
+  // ── Modais ─────────────────────────────────────────────────────────────
+  const modais = (
+    <>
+      <Modal visible={showCreate} transparent animationType="slide">
+        <LigaModalOverlay>
+          <LigaModalSheet>
+            <LigaModalTitle>Nova Liga</LigaModalTitle>
+            <LigaInputLabel>Nome da liga</LigaInputLabel>
+            <LigaInput
+              value={ligaNome} onChangeText={setLigaNome}
+              placeholder="Ex: Família, Trampo..." placeholderTextColor={theme.colors.text.muted}
+              autoFocus maxLength={30}
+            />
+            {modalError && <LigaModalError>{modalError}</LigaModalError>}
+            <LigaActionBtn onPress={handleCreate} disabled={modalLoading}>
+              {modalLoading ? <ActivityIndicator color={theme.colors.background.primary} /> : <LigaActionBtnText>Criar</LigaActionBtnText>}
+            </LigaActionBtn>
+            <LigaActionBtn outline onPress={() => setShowCreate(false)}>
+              <LigaActionBtnText outline>Cancelar</LigaActionBtnText>
+            </LigaActionBtn>
+          </LigaModalSheet>
+        </LigaModalOverlay>
+      </Modal>
+
+      <Modal visible={showJoin} transparent animationType="slide">
+        <LigaModalOverlay>
+          <LigaModalSheet>
+            <LigaModalTitle>Entrar na Liga</LigaModalTitle>
+            <LigaInputLabel>Código da liga</LigaInputLabel>
+            <LigaInput
+              value={ligaCodigo} onChangeText={t => setLigaCodigo(t.toUpperCase())}
+              placeholder="Ex: AB3X7K" placeholderTextColor={theme.colors.text.muted}
+              autoCapitalize="characters" autoFocus maxLength={6}
+            />
+            {modalError && <LigaModalError>{modalError}</LigaModalError>}
+            <LigaActionBtn onPress={handleJoin} disabled={modalLoading}>
+              {modalLoading ? <ActivityIndicator color={theme.colors.background.primary} /> : <LigaActionBtnText>Entrar</LigaActionBtnText>}
+            </LigaActionBtn>
+            <LigaActionBtn outline onPress={() => setShowJoin(false)}>
+              <LigaActionBtnText outline>Cancelar</LigaActionBtnText>
+            </LigaActionBtn>
+          </LigaModalSheet>
+        </LigaModalOverlay>
+      </Modal>
+    </>
+  );
+
+  // ── Sem ligas ──────────────────────────────────────────────────────────
+  if (ligas.length === 0) {
     return (
       <>
         <NoLigaContainer>
           <NoLigaTitle>Nenhuma liga ainda</NoLigaTitle>
-          <NoLigaSubtitle>
-            {'Crie uma liga e compartilhe o código\ncom seus amigos para competir!'}
-          </NoLigaSubtitle>
-          <LigaActionBtn onPress={() => { setModalError(null); setShowCreate(true); }}>
-            <LigaActionBtnText>Criar liga</LigaActionBtnText>
-          </LigaActionBtn>
-          <LigaActionBtn outline onPress={() => { setModalError(null); setShowJoin(true); }}>
-            <LigaActionBtnText outline>Entrar com código</LigaActionBtnText>
-          </LigaActionBtn>
+          <NoLigaSubtitle>{'Crie uma liga e compartilhe o código\ncom seus amigos para competir!'}</NoLigaSubtitle>
+          <LigaActionBtn onPress={openCreate}><LigaActionBtnText>Criar liga</LigaActionBtnText></LigaActionBtn>
+          <LigaActionBtn outline onPress={openJoin}><LigaActionBtnText outline>Entrar com código</LigaActionBtnText></LigaActionBtn>
         </NoLigaContainer>
-
-        {/* Modal Criar */}
-        <Modal visible={showCreate} transparent animationType="slide">
-          <LigaModalOverlay>
-            <LigaModalSheet>
-              <LigaModalTitle>Nova Liga</LigaModalTitle>
-              <LigaInputLabel>Nome da liga</LigaInputLabel>
-              <LigaInput
-                value={ligaNome}
-                onChangeText={setLigaNome}
-                placeholder="Ex: Família, Trampo..."
-                placeholderTextColor={theme.colors.text.muted}
-                autoFocus
-                maxLength={30}
-              />
-              {modalError && <LigaModalError>{modalError}</LigaModalError>}
-              <LigaActionBtn onPress={handleCreate} disabled={modalLoading}>
-                {modalLoading
-                  ? <ActivityIndicator color={theme.colors.background.primary} />
-                  : <LigaActionBtnText>Criar</LigaActionBtnText>
-                }
-              </LigaActionBtn>
-              <LigaActionBtn outline onPress={() => setShowCreate(false)}>
-                <LigaActionBtnText outline>Cancelar</LigaActionBtnText>
-              </LigaActionBtn>
-            </LigaModalSheet>
-          </LigaModalOverlay>
-        </Modal>
-
-        {/* Modal Entrar */}
-        <Modal visible={showJoin} transparent animationType="slide">
-          <LigaModalOverlay>
-            <LigaModalSheet>
-              <LigaModalTitle>Entrar na Liga</LigaModalTitle>
-              <LigaInputLabel>Código da liga</LigaInputLabel>
-              <LigaInput
-                value={ligaCodigo}
-                onChangeText={t => setLigaCodigo(t.toUpperCase())}
-                placeholder="Ex: AB3X7K"
-                placeholderTextColor={theme.colors.text.muted}
-                autoCapitalize="characters"
-                autoFocus
-                maxLength={6}
-              />
-              {modalError && <LigaModalError>{modalError}</LigaModalError>}
-              <LigaActionBtn onPress={handleJoin} disabled={modalLoading}>
-                {modalLoading
-                  ? <ActivityIndicator color={theme.colors.background.primary} />
-                  : <LigaActionBtnText>Entrar</LigaActionBtnText>
-                }
-              </LigaActionBtn>
-              <LigaActionBtn outline onPress={() => setShowJoin(false)}>
-                <LigaActionBtnText outline>Cancelar</LigaActionBtnText>
-              </LigaActionBtn>
-            </LigaModalSheet>
-          </LigaModalOverlay>
-        </Modal>
+        {modais}
       </>
     );
   }
 
-  // Ranking
+  // ── Lista de ligas + ranking da selecionada ────────────────────────────
   return (
-    <LigaCard>
-      <LigaCardHeader>
-        <LigaName>{liga.nome}</LigaName>
-        <LigaLeaveBtn onPress={handleLeave}>
-          <LigaLeaveBtnText>Sair</LigaLeaveBtnText>
-        </LigaLeaveBtn>
-      </LigaCardHeader>
+    <>
+      {/* Lista de ligas */}
+      <LigaListContainer>
+        {ligas.map(l => (
+          <LigaListItem key={l.id} active={selectedLiga?.id === l.id} onPress={() => selectLiga(l)}>
+            <LigaListItemName active={selectedLiga?.id === l.id}>{l.nome}</LigaListItemName>
+            <LigaListItemCode>{l.codigo}</LigaListItemCode>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={selectedLiga?.id === l.id ? theme.colors.accent.green : theme.colors.text.muted}
+            />
+          </LigaListItem>
+        ))}
+      </LigaListContainer>
 
-      <LigaCodeRow onPress={handleShare}>
-        <LigaCodeLabel>CÓDIGO</LigaCodeLabel>
-        <LigaCodeValue>{liga.codigo}</LigaCodeValue>
-        <Ionicons name="share-outline" size={14} color={theme.colors.accent.green} />
-      </LigaCodeRow>
+      {/* Botões criar / entrar */}
+      <LigaActionsRow>
+        <LigaActionSmallBtn onPress={openCreate}>
+          <LigaActionSmallBtnText>+ Criar liga</LigaActionSmallBtnText>
+        </LigaActionSmallBtn>
+        <LigaActionSmallBtn outline onPress={openJoin}>
+          <LigaActionSmallBtnText outline>Entrar com código</LigaActionSmallBtnText>
+        </LigaActionSmallBtn>
+      </LigaActionsRow>
 
-      {ranking.map((m, i) => {
-        const isMe = m.usuario_id === user?.id;
-        return (
-          <RankingRow key={m.usuario_id} isMe={isMe}>
-            <RankPosition top={i < 3}>{i + 1}</RankPosition>
-            <RankApelido isMe={isMe}>
-              {m.apelido}
-              {isMe && <RankMeTag> (você)</RankMeTag>}
-            </RankApelido>
-            <RankPoints>{m.pontos} pts</RankPoints>
-          </RankingRow>
-        );
-      })}
-    </LigaCard>
+      {/* Ranking da liga selecionada */}
+      {selectedLiga && (
+        <LigaCard>
+          <LigaCardHeader>
+            <LigaName>{selectedLiga.nome}</LigaName>
+            <LigaLeaveBtn onPress={() => handleLeave(selectedLiga)}>
+              <LigaLeaveBtnText>Sair</LigaLeaveBtnText>
+            </LigaLeaveBtn>
+          </LigaCardHeader>
+
+          <LigaCodeRow onPress={handleShare}>
+            <LigaCodeLabel>CÓDIGO</LigaCodeLabel>
+            <LigaCodeValue>{selectedLiga.codigo}</LigaCodeValue>
+            <Ionicons name="share-outline" size={14} color={theme.colors.accent.green} />
+          </LigaCodeRow>
+
+          {ranking.map((m, i) => {
+            const isMe = m.usuario_id === user?.id;
+            return (
+              <RankingRow key={m.usuario_id} isMe={isMe}>
+                <RankPosition top={i < 3}>{i + 1}</RankPosition>
+                <RankApelido isMe={isMe}>
+                  {m.apelido}{isMe && <RankMeTag> (você)</RankMeTag>}
+                </RankApelido>
+                <RankPoints>{m.pontos} pts</RankPoints>
+              </RankingRow>
+            );
+          })}
+        </LigaCard>
+      )}
+
+      {modais}
+    </>
   );
 }
 

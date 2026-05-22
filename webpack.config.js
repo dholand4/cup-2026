@@ -7,6 +7,8 @@ module.exports = async function (env, argv) {
   config.resolve.fallback = {
     ...(config.resolve.fallback || {}),
     crypto: false,
+    stream: false,
+    buffer: false,
   };
 
   return config;

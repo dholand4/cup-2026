@@ -631,6 +631,63 @@ export const RankPoints = styled.Text`
   text-align: right;
 `;
 
+export const LigaListContainer = styled.View`
+  margin: 16px 20px 0;
+  gap: 8px;
+`;
+
+export const LigaListItem = styled.TouchableOpacity<{ active: boolean }>`
+  flex-direction: row;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: ${({ theme }) => theme.borderRadius.md}px;
+  background-color: ${({ active, theme }) =>
+    active ? `${theme.colors.accent.green}22` : theme.colors.background.secondary};
+  border-width: 1.5px;
+  border-color: ${({ active, theme }) =>
+    active ? theme.colors.accent.green : theme.colors.border};
+`;
+
+export const LigaListItemName = styled.Text<{ active: boolean }>`
+  flex: 1;
+  font-family: Manrope_700Bold;
+  font-size: 14px;
+  color: ${({ active, theme }) =>
+    active ? theme.colors.accent.green : theme.colors.text.primary};
+`;
+
+export const LigaListItemCode = styled.Text`
+  font-family: Anton_400Regular;
+  font-size: 13px;
+  color: ${({ theme }) => theme.colors.text.muted};
+  letter-spacing: 1.5px;
+  margin-right: 6px;
+`;
+
+export const LigaActionsRow = styled.View`
+  flex-direction: row;
+  margin: 10px 20px 0;
+  gap: 8px;
+`;
+
+export const LigaActionSmallBtn = styled.TouchableOpacity<{ outline?: boolean }>`
+  flex: 1;
+  padding: 10px;
+  border-radius: ${({ theme }) => theme.borderRadius.md}px;
+  align-items: center;
+  background-color: ${({ outline, theme }) =>
+    outline ? 'transparent' : theme.colors.accent.green};
+  border-width: 1.5px;
+  border-color: ${({ theme }) => theme.colors.accent.green};
+`;
+
+export const LigaActionSmallBtnText = styled.Text<{ outline?: boolean }>`
+  font-family: Manrope_700Bold;
+  font-size: 13px;
+  color: ${({ outline, theme }) =>
+    outline ? theme.colors.accent.green : theme.colors.background.primary};
+`;
+
 export const GuestBanner = styled.View`
   margin: 32px 20px 0;
   background-color: ${({ theme }) => theme.colors.background.secondary};

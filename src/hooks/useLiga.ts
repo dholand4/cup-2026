@@ -19,47 +19,79 @@ function generateCode(): string {
 }
 
 export function useLiga(userId: string | null | undefined) {
-  const [liga,    setLiga]    = useState<ILiga | null>(null);
-  const [ranking, setRanking] = useState<ILigaMembro[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [ligas,        setLigas]        = useState<ILiga[]>([]);
+  const [selectedLiga, setSelectedLiga] = useState<ILiga | null>(null);
+  const [ranking,      setRanking]      = useState<ILigaMembro[]>([]);
+  const [loading,      setLoading]      = useState(false);
+
+  // ── Buscar ranking de uma liga ─────────────────────────────────────────
 
   const fetchRanking = useCallback(async (ligaId: string) => {
-    const { data } = await supabase
+    const { data: membros } = await supabase
       .from('membros_liga')
-      .select('usuario_id, pontos, perfis(apelido)')
+      .select('usuario_id, pontos')
       .eq('liga_id', ligaId)
       .order('pontos', { ascending: false });
 
-    if (data) {
-      setRanking(data.map((m: any) => ({
-        usuario_id: m.usuario_id,
-        pontos:     m.pontos ?? 0,
-        apelido:    m.perfis?.apelido ?? 'Anônimo',
-      })));
-    }
+    if (!membros || membros.length === 0) { setRanking([]); return; }
+
+    const userIds = membros.map((m: any) => m.usuario_id);
+    const { data: perfis } = await supabase
+      .from('perfis')
+      .select('id, apelido')
+      .in('id', userIds);
+
+    const perfilMap = new Map(perfis?.map((p: any) => [p.id, p.apelido]) ?? []);
+
+    setRanking(membros.map((m: any) => ({
+      usuario_id: m.usuario_id,
+      pontos:     m.pontos ?? 0,
+      apelido:    perfilMap.get(m.usuario_id) ?? 'Anônimo',
+    })));
   }, []);
 
-  const fetchUserLiga = useCallback(async () => {
+  // ── Buscar todas as ligas do usuário ───────────────────────────────────
+
+  const fetchUserLigas = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
 
     const { data } = await supabase
       .from('membros_liga')
       .select('liga_id, ligas(id, nome, codigo, criador_id)')
-      .eq('usuario_id', userId)
-      .maybeSingle();
+      .eq('usuario_id', userId);
 
-    if (data?.ligas) {
-      const l = data.ligas as any;
-      const ligaObj: ILiga = { id: l.id, nome: l.nome, codigo: l.codigo, criador_id: l.criador_id };
-      setLiga(ligaObj);
-      await fetchRanking(l.id);
+    if (data && data.length > 0) {
+      const lista: ILiga[] = data
+        .map((d: any) => d.ligas)
+        .filter(Boolean)
+        .map((l: any) => ({ id: l.id, nome: l.nome, codigo: l.codigo, criador_id: l.criador_id }));
+
+      setLigas(lista);
+
+      // Seleciona a primeira por padrão se nenhuma estiver selecionada
+      setSelectedLiga(prev => prev ? (lista.find(l => l.id === prev.id) ?? lista[0]) : lista[0]);
+    } else {
+      setLigas([]);
+      setSelectedLiga(null);
     }
 
     setLoading(false);
-  }, [userId, fetchRanking]);
+  }, [userId]);
 
-  useEffect(() => { fetchUserLiga(); }, [fetchUserLiga]);
+  useEffect(() => { fetchUserLigas(); }, [fetchUserLigas]);
+
+  // Busca ranking sempre que selectedLiga muda
+  useEffect(() => {
+    if (selectedLiga) fetchRanking(selectedLiga.id);
+    else setRanking([]);
+  }, [selectedLiga, fetchRanking]);
+
+  // ── Selecionar liga ────────────────────────────────────────────────────
+
+  const selectLiga = useCallback((liga: ILiga) => {
+    setSelectedLiga(liga);
+  }, []);
 
   // ── Criar liga ─────────────────────────────────────────────────────────
 
@@ -82,10 +114,11 @@ export function useLiga(userId: string | null | undefined) {
 
     if (memErr) return memErr.message;
 
-    setLiga(ligaData as ILiga);
-    await fetchRanking(ligaData.id);
+    // Recarrega tudo do servidor para garantir sincronia
+    await fetchUserLigas();
+    setSelectedLiga(ligaData as ILiga);
     return null;
-  }, [userId, fetchRanking]);
+  }, [userId, fetchUserLigas]);
 
   // ── Entrar na liga ─────────────────────────────────────────────────────
 
@@ -115,34 +148,48 @@ export function useLiga(userId: string | null | undefined) {
 
     if (memErr) return memErr.message;
 
-    setLiga(ligaData as ILiga);
-    await fetchRanking(ligaData.id);
+    // Recarrega tudo do servidor para garantir sincronia
+    await fetchUserLigas();
+    setSelectedLiga(ligaData as ILiga);
     return null;
-  }, [userId, fetchRanking]);
+  }, [userId, fetchUserLigas]);
 
   // ── Sair da liga ───────────────────────────────────────────────────────
 
-  const leaveLiga = useCallback(async (): Promise<void> => {
-    if (!userId || !liga) return;
+  const leaveLiga = useCallback(async (liga: ILiga): Promise<string | null> => {
+    if (!userId) return 'Usuário não autenticado.';
 
-    await supabase
+    const { error: memErr } = await supabase
       .from('membros_liga')
       .delete()
       .eq('liga_id', liga.id)
       .eq('usuario_id', userId);
 
+    if (memErr) return memErr.message;
+
     if (liga.criador_id === userId) {
-      await supabase.from('ligas').delete().eq('id', liga.id);
+      const { error: ligaErr } = await supabase
+        .from('ligas')
+        .delete()
+        .eq('id', liga.id);
+      if (ligaErr) return ligaErr.message;
     }
 
-    setLiga(null);
+    setLigas(prev => {
+      const novas = prev.filter(l => l.id !== liga.id);
+      setSelectedLiga(novas.length > 0 ? novas[0] : null);
+      return novas;
+    });
     setRanking([]);
-  }, [userId, liga]);
+    return null;
+  }, [userId]);
 
   const refresh = useCallback(async () => {
-    if (liga) await fetchRanking(liga.id);
-    else await fetchUserLiga();
-  }, [liga, fetchRanking, fetchUserLiga]);
+    if (selectedLiga) await fetchRanking(selectedLiga.id);
+  }, [selectedLiga, fetchRanking]);
 
-  return { liga, ranking, loading, createLiga, joinLiga, leaveLiga, refresh };
+  return {
+    ligas, selectedLiga, ranking, loading,
+    selectLiga, createLiga, joinLiga, leaveLiga, refresh,
+  };
 }
