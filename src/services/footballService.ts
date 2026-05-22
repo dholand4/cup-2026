@@ -5,7 +5,7 @@ import {
 import { translateTeam } from '../utils/teamNames';
 
 // Sempre usa o backend Vercel
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL ?? '';
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://copa2026-backend.vercel.app';
 
 function translateMatch(m: IMatch): IMatch {
   return {
