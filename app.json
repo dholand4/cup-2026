@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Copa 2026",
+    "slug": "copa2026",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "icon": "./src/assets/LOGO DQ.png",
+    "splash": {
+      "image": "./src/assets/LOGO DQ.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0E1A"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.copa2026.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/LOGO DQ.png",
+        "backgroundColor": "#0A0E1A"
+      },
+      "package": "com.copa2026.app",
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "web": {
+      "bundler": "webpack"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/LOGO DQ.png",
+          "color": "#0A0E1A",
+          "sounds": []
+        }
+      ]
+    ]
+  }
+}
