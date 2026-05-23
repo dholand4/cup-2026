@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { ScrollView, RefreshControl, ActivityIndicator, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { IMatch } from '../../@types';
@@ -162,6 +162,13 @@ export function HomeScreen() {
   const hasFavNotif = notifyFavorites || notifyAll;
 
   const handleProfilePress = () => {
+    if (Platform.OS === 'web') {
+      const msg = isGuest
+        ? 'Você é visitante.\nDeseja sair?'
+        : `${user?.email ?? 'Minha conta'}\n\nDeseja sair da conta?`;
+      if ((window as any).confirm(msg)) signOut();
+      return;
+    }
     if (isGuest) {
       Alert.alert(
         'Você é visitante',
