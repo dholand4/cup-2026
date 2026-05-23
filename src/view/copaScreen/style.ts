@@ -320,3 +320,181 @@ export const PlayerPos = styled.Text`
 export const BottomSpacer = styled.View`
   height: 110px;
 `;
+
+// ── Chaveamento tab ───────────────────────────────────────────────────
+
+export const BracketRoundSection = styled.View`
+  margin: 0 12px 16px;
+`;
+
+export const BracketRoundHeader = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 10px;
+  border-bottom-width: 1px;
+  border-bottom-color: ${({ theme }) => theme.colors.border};
+  margin-bottom: 10px;
+`;
+
+export const BracketRoundLabel = styled.Text`
+  font-family: Anton_400Regular;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: ${({ theme }) => theme.colors.text.primary};
+`;
+
+export const BracketRoundCount = styled.Text`
+  font-family: Manrope_600SemiBold;
+  font-size: 11px;
+  color: ${({ theme }) => theme.colors.text.muted};
+`;
+
+export const BracketSidesRow = styled.View`
+  flex-direction: row;
+  gap: 8px;
+`;
+
+export const BracketSide = styled.View`
+  flex: 1;
+  gap: 6px;
+`;
+
+export const BracketSideLabel = styled.Text`
+  font-family: Manrope_700Bold;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  color: ${({ theme }) => theme.colors.accent.green};
+  text-transform: uppercase;
+  margin-bottom: 2px;
+`;
+
+export const BracketMatchBox = styled.View`
+  background-color: ${({ theme }) => theme.colors.background.elevated};
+  border-radius: ${({ theme }) => theme.borderRadius.sm}px;
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.border};
+  overflow: hidden;
+`;
+
+export const BracketTeamLine = styled.View<{ winner?: boolean; tbd?: boolean }>`
+  flex-direction: row;
+  align-items: center;
+  padding: 5px 7px;
+  gap: 5px;
+  background-color: ${({ winner, theme }) =>
+    winner ? 'rgba(0,165,80,0.12)' : 'transparent'};
+`;
+
+export const BracketTLA = styled.Text<{ winner?: boolean; tbd?: boolean }>`
+  font-family: ${({ tbd }) => tbd ? 'Manrope_400Regular' : 'Manrope_700Bold'};
+  font-size: ${({ tbd }) => tbd ? '9px' : '11px'};
+  color: ${({ winner, tbd, theme }) =>
+    tbd ? theme.colors.text.muted :
+    winner ? theme.colors.accent.green :
+    theme.colors.text.primary};
+  flex: 1;
+`;
+
+export const BracketScoreNum = styled.Text<{ winner?: boolean }>`
+  font-family: Anton_400Regular;
+  font-size: 14px;
+  color: ${({ winner, theme }) =>
+    winner ? theme.colors.accent.green : theme.colors.text.mid};
+  min-width: 14px;
+  text-align: right;
+`;
+
+export const BracketMatchDivider = styled.View`
+  height: 1px;
+  background-color: ${({ theme }) => theme.colors.border};
+`;
+
+export const BracketMatchStatus = styled.Text<{ live?: boolean }>`
+  font-family: Manrope_700Bold;
+  font-size: 8px;
+  letter-spacing: 0.4px;
+  text-align: center;
+  padding: 3px 4px;
+  color: ${({ live, theme }) =>
+    live ? theme.colors.accent.live : theme.colors.text.muted};
+  background-color: ${({ live, theme }) =>
+    live ? 'rgba(255,59,59,0.08)' : theme.colors.background.primary};
+`;
+
+export const BracketFinalSection = styled.View`
+  margin: 4px 20px 16px;
+  align-items: center;
+`;
+
+export const BracketFinalLabel = styled.Text`
+  font-family: Anton_400Regular;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: ${({ theme }) => theme.colors.accent.gold};
+  margin-bottom: 12px;
+  text-align: center;
+`;
+
+export const BracketFinalCard = styled.View`
+  width: 100%;
+  max-width: 280px;
+  background-color: ${({ theme }) => theme.colors.background.elevated};
+  border-radius: ${({ theme }) => theme.borderRadius.md}px;
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.accent.gold};
+  overflow: hidden;
+`;
+
+export const BracketFinalTeamLine = styled.View<{ winner?: boolean; tbd?: boolean }>`
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 14px;
+  gap: 10px;
+  background-color: ${({ winner, theme }) =>
+    winner ? 'rgba(0,165,80,0.12)' : 'transparent'};
+`;
+
+export const BracketFinalTLA = styled.Text<{ winner?: boolean; tbd?: boolean }>`
+  font-family: ${({ tbd }) => tbd ? 'Manrope_400Regular' : 'Anton_400Regular'};
+  font-size: ${({ tbd }) => tbd ? '12px' : '16px'};
+  letter-spacing: 1px;
+  color: ${({ winner, tbd, theme }) =>
+    tbd ? theme.colors.text.muted :
+    winner ? theme.colors.accent.green :
+    theme.colors.text.primary};
+  flex: 1;
+`;
+
+export const BracketFinalScore = styled.Text<{ winner?: boolean }>`
+  font-family: Anton_400Regular;
+  font-size: 22px;
+  color: ${({ winner, theme }) =>
+    winner ? theme.colors.accent.green : theme.colors.text.mid};
+`;
+
+export const ChampionBanner = styled.View`
+  align-items: center;
+  padding: 16px;
+  margin-top: 8px;
+  background-color: rgba(255,215,0,0.06);
+  border-radius: ${({ theme }) => theme.borderRadius.md}px;
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.accent.gold};
+  gap: 8px;
+`;
+
+export const ChampionLabel = styled.Text`
+  font-family: Manrope_800ExtraBold;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: ${({ theme }) => theme.colors.accent.gold};
+  text-transform: uppercase;
+`;
+
+export const ChampionName = styled.Text`
+  font-family: Anton_400Regular;
+  font-size: 24px;
+  letter-spacing: 2px;
+  color: ${({ theme }) => theme.colors.accent.gold};
+`;

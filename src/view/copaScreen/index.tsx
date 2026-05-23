@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ScrollView, RefreshControl, ActivityIndicator, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useStandings } from '../../hooks/useStandings';
 import { useScorers } from '../../hooks/useScorers';
+import { useMatchesContext } from '../../providers/MatchesProvider';
+import { IMatch } from '../../@types';
 import { GroupTableGlobal } from '../../components/groupTableGlobal';
 import { EmptyStateGlobal } from '../../components/emptyStateGlobal';
 import { SearchBarGlobal } from '../../components/searchBarGlobal';
@@ -17,9 +20,16 @@ import {
   ScorerCard, ScorerRank, ScorerInfo, ScorerName, ScorerTeam,
   ScorerStats, ScorerGoals, ScorerAssists,
   BottomSpacer,
+  BracketRoundSection, BracketRoundHeader, BracketRoundLabel, BracketRoundCount,
+  BracketSidesRow, BracketSide, BracketSideLabel,
+  BracketMatchBox, BracketTeamLine, BracketTLA, BracketScoreNum,
+  BracketMatchDivider, BracketMatchStatus,
+  BracketFinalSection, BracketFinalLabel, BracketFinalCard,
+  BracketFinalTeamLine, BracketFinalTLA, BracketFinalScore,
+  ChampionBanner, ChampionLabel, ChampionName,
 } from './style';
 
-type ActiveTab = 'grupos' | 'artilheiros';
+type ActiveTab = 'grupos' | 'chaveamento' | 'artilheiros';
 
 // ── helpers ────────────────────────────────────────────────────────────
 
@@ -165,6 +175,203 @@ function ArtilheirosTab() {
   );
 }
 
+// ── ChaveamentoTab ─────────────────────────────────────────────────────
+
+const KNOCKOUT_STAGES = [
+  { key: 'ROUND_OF_32',    label: 'Rodada de 32',    count: 16 },
+  { key: 'ROUND_OF_16',    label: 'Oitavas de Final', count: 8  },
+  { key: 'QUARTER_FINALS', label: 'Quartas de Final', count: 4  },
+  { key: 'SEMI_FINALS',    label: 'Semifinais',       count: 2  },
+] as const;
+
+function isTbd(tla: string | undefined): boolean {
+  return !tla || tla === 'TBD' || tla === '' || tla === '?';
+}
+
+function BracketMatchItem({ match }: { match: IMatch }) {
+  const finished = match.status === 'FINISHED';
+  const live     = match.status === 'IN_PLAY' || match.status === 'PAUSED';
+  const hasScore = match.score.fullTime.home !== null;
+  const hScore   = match.score.fullTime.home ?? 0;
+  const aScore   = match.score.fullTime.away ?? 0;
+  const homeWon  = finished && hScore > aScore;
+  const awayWon  = finished && aScore > hScore;
+  const homeTbd  = isTbd(match.homeTeam.tla);
+  const awayTbd  = isTbd(match.awayTeam.tla);
+
+  return (
+    <BracketMatchBox>
+      <BracketTeamLine winner={homeWon} tbd={homeTbd}>
+        {!homeTbd && (
+          <CrestGlobal tla={match.homeTeam.tla} size={14} teamName={match.homeTeam.name} />
+        )}
+        <BracketTLA winner={homeWon} tbd={homeTbd}>
+          {homeTbd ? '?' : match.homeTeam.tla}
+        </BracketTLA>
+        {hasScore && <BracketScoreNum winner={homeWon}>{hScore}</BracketScoreNum>}
+      </BracketTeamLine>
+
+      <BracketMatchDivider />
+
+      <BracketTeamLine winner={awayWon} tbd={awayTbd}>
+        {!awayTbd && (
+          <CrestGlobal tla={match.awayTeam.tla} size={14} teamName={match.awayTeam.name} />
+        )}
+        <BracketTLA winner={awayWon} tbd={awayTbd}>
+          {awayTbd ? '?' : match.awayTeam.tla}
+        </BracketTLA>
+        {hasScore && <BracketScoreNum winner={awayWon}>{aScore}</BracketScoreNum>}
+      </BracketTeamLine>
+
+      {(finished || live) && (
+        <BracketMatchStatus live={live}>
+          {live
+            ? `● ${match.minute != null ? `${match.minute}'` : 'AO VIVO'}`
+            : 'Encerrado'}
+        </BracketMatchStatus>
+      )}
+    </BracketMatchBox>
+  );
+}
+
+function BracketFinalItem({ match }: { match: IMatch }) {
+  const finished = match.status === 'FINISHED';
+  const live     = match.status === 'IN_PLAY' || match.status === 'PAUSED';
+  const hasScore = match.score.fullTime.home !== null;
+  const hScore   = match.score.fullTime.home ?? 0;
+  const aScore   = match.score.fullTime.away ?? 0;
+  const homeWon  = finished && hScore > aScore;
+  const awayWon  = finished && aScore > hScore;
+  const homeTbd  = isTbd(match.homeTeam.tla);
+  const awayTbd  = isTbd(match.awayTeam.tla);
+  const champion = homeWon ? match.homeTeam : awayWon ? match.awayTeam : null;
+
+  return (
+    <>
+      <BracketFinalCard>
+        <BracketFinalTeamLine winner={homeWon} tbd={homeTbd}>
+          {!homeTbd && (
+            <CrestGlobal tla={match.homeTeam.tla} size={26} teamName={match.homeTeam.name} />
+          )}
+          <BracketFinalTLA winner={homeWon} tbd={homeTbd}>
+            {homeTbd ? 'A definir' : match.homeTeam.tla}
+          </BracketFinalTLA>
+          {hasScore && <BracketFinalScore winner={homeWon}>{hScore}</BracketFinalScore>}
+        </BracketFinalTeamLine>
+
+        <BracketMatchDivider />
+
+        <BracketFinalTeamLine winner={awayWon} tbd={awayTbd}>
+          {!awayTbd && (
+            <CrestGlobal tla={match.awayTeam.tla} size={26} teamName={match.awayTeam.name} />
+          )}
+          <BracketFinalTLA winner={awayWon} tbd={awayTbd}>
+            {awayTbd ? 'A definir' : match.awayTeam.tla}
+          </BracketFinalTLA>
+          {hasScore && <BracketFinalScore winner={awayWon}>{aScore}</BracketFinalScore>}
+        </BracketFinalTeamLine>
+
+        {(finished || live) && (
+          <BracketMatchStatus live={live}>
+            {live
+              ? `● ${match.minute != null ? `${match.minute}'` : 'AO VIVO'}`
+              : 'Encerrado'}
+          </BracketMatchStatus>
+        )}
+      </BracketFinalCard>
+
+      {champion && (
+        <ChampionBanner>
+          <ChampionLabel>🏆 Campeão Mundial</ChampionLabel>
+          <CrestGlobal tla={champion.tla} size={52} teamName={champion.name} />
+          <ChampionName>{champion.tla}</ChampionName>
+        </ChampionBanner>
+      )}
+    </>
+  );
+}
+
+function ChaveamentoTab() {
+  const { live, today, upcoming, recent } = useMatchesContext();
+
+  const allMatches = useMemo(() => {
+    const map = new Map<number, IMatch>();
+    [...recent, ...live, ...today, ...upcoming].forEach(m => map.set(m.id, m));
+    return [...map.values()].sort(
+      (a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime(),
+    );
+  }, [recent, live, today, upcoming]);
+
+  const byStage = useMemo(() => {
+    const result: Record<string, IMatch[]> = {};
+    allMatches.forEach(m => {
+      if (!m.stage) return;
+      const stages = ['ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'];
+      if (!stages.includes(m.stage)) return;
+      if (!result[m.stage]) result[m.stage] = [];
+      result[m.stage].push(m);
+    });
+    return result;
+  }, [allMatches]);
+
+  const finalMatch  = byStage['FINAL']?.[0] ?? null;
+  const hasKnockout = Object.keys(byStage).length > 0;
+
+  if (!hasKnockout) {
+    return (
+      <View style={{ flex: 1, padding: 20 }}>
+        <EmptyStateGlobal
+          message={'Chaveamento disponível\napós a fase de grupos\n\n📅 Copa 2026 · Jul 2026'}
+          icon="git-branch-outline"
+        />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView showsVerticalScrollIndicator={false}>
+      {KNOCKOUT_STAGES.map(stage => {
+        const matches = byStage[stage.key];
+        if (!matches || matches.length === 0) return null;
+
+        const mid   = Math.ceil(matches.length / 2);
+        const left  = matches.slice(0, mid);
+        const right = matches.slice(mid);
+
+        return (
+          <BracketRoundSection key={stage.key}>
+            <BracketRoundHeader>
+              <BracketRoundLabel>{stage.label}</BracketRoundLabel>
+              <BracketRoundCount>{matches.length} jogos</BracketRoundCount>
+            </BracketRoundHeader>
+
+            <BracketSidesRow>
+              <BracketSide>
+                <BracketSideLabel>◀ Chave A</BracketSideLabel>
+                {left.map(m => <BracketMatchItem key={m.id} match={m} />)}
+              </BracketSide>
+
+              <BracketSide>
+                <BracketSideLabel style={{ textAlign: 'right' }}>Chave B ▶</BracketSideLabel>
+                {right.map(m => <BracketMatchItem key={m.id} match={m} />)}
+              </BracketSide>
+            </BracketSidesRow>
+          </BracketRoundSection>
+        );
+      })}
+
+      {finalMatch && (
+        <BracketFinalSection>
+          <BracketFinalLabel>🏆  FINAL  🏆</BracketFinalLabel>
+          <BracketFinalItem match={finalMatch} />
+        </BracketFinalSection>
+      )}
+
+      <BottomSpacer />
+    </ScrollView>
+  );
+}
+
 // ── CopaScreen ─────────────────────────────────────────────────────────
 
 export function CopaScreen() {
@@ -200,6 +407,9 @@ export function CopaScreen() {
         <TabBtn active={activeTab === 'grupos'} onPress={() => setActiveTab('grupos')}>
           <TabBtnText active={activeTab === 'grupos'}>Grupos</TabBtnText>
         </TabBtn>
+        <TabBtn active={activeTab === 'chaveamento'} onPress={() => setActiveTab('chaveamento')}>
+          <TabBtnText active={activeTab === 'chaveamento'}>Chaveamento</TabBtnText>
+        </TabBtn>
         <TabBtn active={activeTab === 'artilheiros'} onPress={() => setActiveTab('artilheiros')}>
           <TabBtnText active={activeTab === 'artilheiros'}>Artilheiros</TabBtnText>
         </TabBtn>
@@ -208,6 +418,7 @@ export function CopaScreen() {
       {activeTab === 'grupos' && (
         <GruposTab groups={groups} refreshing={refreshing} onRefresh={handleRefresh} />
       )}
+      {activeTab === 'chaveamento' && <ChaveamentoTab />}
       {activeTab === 'artilheiros' && <ArtilheirosTab />}
     </SafeAreaView>
   );
