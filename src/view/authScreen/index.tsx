@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../providers/AuthProvider';
 import { theme } from '../../constants/theme';
 import {
   Screen, Logo, WordmarkRow, WordmarkCopa, WordmarkYear, Subtitle,
   Card, CardTitle, TabRow, TabBtn, TabBtnText,
-  InputLabel, Input, SubmitBtn, SubmitBtnText,
+  InputLabel, Input, InputWrap, InputInner, EyeBtn, SubmitBtn, SubmitBtnText,
   ErrorText, SuccessText, InfoText,
   Divider, DividerLine, DividerText,
   GuestBtn, GuestBtnText,
@@ -29,6 +30,8 @@ export function AuthScreen() {
   const [confirmSenha, setConfirmSenha] = useState('');
   const [code, setCode]               = useState('');
   const [needsCode, setNeedsCode]     = useState(true);
+  const [showSenha, setShowSenha]         = useState(false);
+  const [showConfirmSenha, setShowConfirmSenha] = useState(false);
   const [error, setError]             = useState<string | null>(null);
   const [successMsg, setSuccessMsg]   = useState<string | null>(null);
   const [loading, setLoading]         = useState(false);
@@ -195,22 +198,40 @@ export function AuthScreen() {
           )}
 
           <InputLabel>Nova senha</InputLabel>
-          <Input
-            value={senha}
-            onChangeText={setSenha}
-            placeholder="Mínimo 6 caracteres"
-            placeholderTextColor={theme.colors.text.muted}
-            secureTextEntry
-          />
+          <InputWrap>
+            <InputInner
+              value={senha}
+              onChangeText={setSenha}
+              placeholder="Mínimo 6 caracteres"
+              placeholderTextColor={theme.colors.text.muted}
+              secureTextEntry={!showSenha}
+            />
+            <EyeBtn onPress={() => setShowSenha(v => !v)}>
+              <Ionicons
+                name={showSenha ? 'eye' : 'eye-off'}
+                size={18}
+                color={theme.colors.text.muted}
+              />
+            </EyeBtn>
+          </InputWrap>
 
           <InputLabel>Confirmar nova senha</InputLabel>
-          <Input
-            value={confirmSenha}
-            onChangeText={setConfirmSenha}
-            placeholder="Repita a nova senha"
-            placeholderTextColor={theme.colors.text.muted}
-            secureTextEntry
-          />
+          <InputWrap>
+            <InputInner
+              value={confirmSenha}
+              onChangeText={setConfirmSenha}
+              placeholder="Repita a nova senha"
+              placeholderTextColor={theme.colors.text.muted}
+              secureTextEntry={!showConfirmSenha}
+            />
+            <EyeBtn onPress={() => setShowConfirmSenha(v => !v)}>
+              <Ionicons
+                name={showConfirmSenha ? 'eye' : 'eye-off'}
+                size={18}
+                color={theme.colors.text.muted}
+              />
+            </EyeBtn>
+          </InputWrap>
 
           {error && <ErrorText>{error}</ErrorText>}
           {successMsg && <SuccessText>{successMsg}</SuccessText>}
@@ -264,13 +285,22 @@ export function AuthScreen() {
         )}
 
         <InputLabel>Senha</InputLabel>
-        <Input
-          value={senha}
-          onChangeText={setSenha}
-          placeholder="Mínimo 6 caracteres"
-          placeholderTextColor={theme.colors.text.muted}
-          secureTextEntry
-        />
+        <InputWrap>
+          <InputInner
+            value={senha}
+            onChangeText={setSenha}
+            placeholder="Mínimo 6 caracteres"
+            placeholderTextColor={theme.colors.text.muted}
+            secureTextEntry={!showSenha}
+          />
+          <EyeBtn onPress={() => setShowSenha(v => !v)}>
+            <Ionicons
+              name={showSenha ? 'eye' : 'eye-off'}
+              size={18}
+              color={theme.colors.text.muted}
+            />
+          </EyeBtn>
+        </InputWrap>
 
         {mode === 'entrar' && (
           <LinkBtn onPress={() => handleModeChange('recovery')}>

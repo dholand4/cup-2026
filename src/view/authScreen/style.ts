@@ -187,3 +187,24 @@ export const BackBtnText = styled.Text`
   font-size: 13px;
   color: ${({ theme }) => theme.colors.text.secondary};
 `;
+
+export const InputWrap = styled.View`
+  flex-direction: row;
+  align-items: center;
+  background-color: ${({ theme }) => theme.colors.background.primary};
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.md}px;
+`;
+
+export const InputInner = styled.TextInput`
+  flex: 1;
+  padding: 12px 14px;
+  font-family: Manrope_400Regular;
+  font-size: 14px;
+  color: ${({ theme }) => theme.colors.text.primary};
+`;
+
+export const EyeBtn = styled.TouchableOpacity`
+  padding: 10px 14px;
+`;
