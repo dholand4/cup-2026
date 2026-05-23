@@ -12,6 +12,16 @@ export const Header = styled.View`
   padding: 8px 20px 10px;
 `;
 
+export const HeaderRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+export const ResetBtn = styled.TouchableOpacity`
+  padding: 6px 8px;
+`;
+
 export const Wordmark = styled.View`
   flex-direction: row;
   align-items: baseline;

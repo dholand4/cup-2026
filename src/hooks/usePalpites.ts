@@ -111,5 +111,11 @@ export function usePalpites() {
     await AsyncStorage.setItem(BRACKET_KEY, JSON.stringify(updated));
   }, [bracket]);
 
-  return { palpites, bracket, loading, savePalpite, saveBracket, removeBracket };
+  const resetAllPalpites = useCallback(async () => {
+    setPalpites({});
+    setBracket({});
+    await AsyncStorage.multiRemove([PALPITES_KEY, BRACKET_KEY]);
+  }, []);
+
+  return { palpites, bracket, loading, savePalpite, saveBracket, removeBracket, resetAllPalpites };
 }
