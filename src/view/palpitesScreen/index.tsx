@@ -21,7 +21,7 @@ import { useAuth } from '../../providers/AuthProvider';
 import { useLiga } from '../../hooks/useLiga';
 import { supabase } from '../../services/supabaseClient';
 import {
-  Screen, Header, HeaderRow, ResetBtn, WordmarkCopa, WordmarkYear, Wordmark, SubTitle,
+  Screen, Header, WordmarkCopa, WordmarkYear, Wordmark, SubTitle,
   StatsBar, StatChip, StatValue, StatLabel,
   TabSwitcher, TabBtn, TabBtnText,
   PaginationRow, PageArrow, PageInfo, PageTodayHint,
@@ -593,7 +593,7 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
 
 export function PalpitesScreen() {
   const { live, today, upcoming, recent, loading, refresh } = useMatchesContext();
-  const { palpites, bracket, savePalpite, saveBracket, removeBracket, resetAllPalpites } = usePalpites();
+  const { palpites, bracket, savePalpite, saveBracket, removeBracket } = usePalpites();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('jogos');
 
@@ -603,37 +603,7 @@ export function PalpitesScreen() {
     setRefreshing(false);
   };
 
-  const handleReset = () => {
-    if (Platform.OS === 'web') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((window as any).confirm('Apagar todos os palpites e fase final?\nEssa ação não pode ser desfeita.')) {
-        resetAllPalpites();
-        if (user?.id) {
-          supabase.from('membros_liga').update({ pontos: 0 }).eq('usuario_id', user.id);
-        }
-      }
-      return;
-    }
-    Alert.alert(
-      'Reiniciar palpites',
-      'Apagar todos os palpites e fase final? Essa ação não pode ser desfeita.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Apagar tudo',
-          style: 'destructive',
-          onPress: async () => {
-            await resetAllPalpites();
-            if (user?.id) {
-              await supabase.from('membros_liga').update({ pontos: 0 }).eq('usuario_id', user.id);
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  // All matches deduplicated and sorted
+// All matches deduplicated and sorted
   const allMatches = useMemo(() => {
     const map = new Map<number, IMatch>();
     [...recent, ...live, ...today, ...upcoming].forEach(m => map.set(m.id, m));
@@ -734,14 +704,9 @@ export function PalpitesScreen() {
           }
         >
           <Header>
-            <HeaderRow>
-              <Wordmark>
-                <WordmarkCopa>PALPITES</WordmarkCopa>
-              </Wordmark>
-              <ResetBtn onPress={handleReset}>
-                <Ionicons name="trash-outline" size={20} color={theme.colors.text.muted} />
-              </ResetBtn>
-            </HeaderRow>
+            <Wordmark>
+              <WordmarkCopa>PALPITES</WordmarkCopa>
+            </Wordmark>
             <SubTitle>Faça suas previsões · Copa 2026</SubTitle>
           </Header>
 
