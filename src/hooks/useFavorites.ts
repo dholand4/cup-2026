@@ -1,26 +1,34 @@
 import { useState, useCallback, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../services/supabaseClient';
 
-const FAVORITES_KEY = '@copa2026:favorites';
-
-export function useFavorites() {
+export function useFavorites(userId: string | null) {
   const [favorites, setFavorites] = useState<string[]>([]);
 
+  // Carrega favoritos do Supabase sempre que o usuário muda
   useEffect(() => {
-    AsyncStorage.getItem(FAVORITES_KEY).then(raw => {
-      if (raw) setFavorites(JSON.parse(raw));
-    });
-  }, []);
+    if (!userId) {
+      setFavorites([]);
+      return;
+    }
+    supabase
+      .from('favoritos')
+      .select('tla')
+      .eq('usuario_id', userId)
+      .then(({ data }) => {
+        setFavorites((data ?? []).map((r: { tla: string }) => r.tla));
+      });
+  }, [userId]);
 
   const toggleFavorite = useCallback(async (tla: string) => {
-    setFavorites(prev => {
-      const next = prev.includes(tla)
-        ? prev.filter(t => t !== tla)
-        : [...prev, tla];
-      AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, []);
+    if (!userId) return;
+    if (favorites.includes(tla)) {
+      await supabase.from('favoritos').delete().eq('usuario_id', userId).eq('tla', tla);
+      setFavorites(prev => prev.filter(t => t !== tla));
+    } else {
+      await supabase.from('favoritos').insert({ usuario_id: userId, tla });
+      setFavorites(prev => [...prev, tla]);
+    }
+  }, [userId, favorites]);
 
   const isFavorite = useCallback(
     (tla: string) => favorites.includes(tla),

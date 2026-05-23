@@ -1,8 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const PALPITES_KEY = '@copa2026:palpites';
-const BRACKET_KEY  = '@copa2026:bracket';
+import { supabase } from '../services/supabaseClient';
 
 // ── Per-match predictions ─────────────────────────────────────────────
 
@@ -51,8 +48,6 @@ export const BRACKET_ROUNDS: { key: BracketRound; label: string; slots: number; 
   { key: 'champion',  label: 'Campeão',           slots: 1, pts: 10 },
 ];
 
-// Teams that actually advanced (populated from API knockout results)
-// key = `${round}_tla`, e.g. "quarters_BRA"
 export type ActualBracket = Record<string, boolean>;
 
 export function getBracketPoints(
@@ -63,59 +58,88 @@ export function getBracketPoints(
   for (const slot of Object.values(bracket)) {
     const round = BRACKET_ROUNDS.find(r => r.key === slot.round);
     if (!round) continue;
-    const key = `${slot.round}_${slot.tla}`;
-    if (actual[key]) total += round.pts;
+    if (actual[`${slot.round}_${slot.tla}`]) total += round.pts;
   }
   return total;
 }
 
-type BracketMap = Record<string, IBracketSlot>; // key = `${round}_${slot}`
+type BracketMap = Record<string, IBracketSlot>;
 
 // ── Hook ──────────────────────────────────────────────────────────────
 
-export function usePalpites() {
+export function usePalpites(userId: string | null) {
   const [palpites, setPalpites] = useState<PalpitesMap>({});
   const [bracket, setBracket]   = useState<BracketMap>({});
   const [loading, setLoading]   = useState(true);
 
+  // Carrega dados do Supabase sempre que o usuário muda
   useEffect(() => {
+    if (!userId) {
+      setPalpites({});
+      setBracket({});
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     Promise.all([
-      AsyncStorage.getItem(PALPITES_KEY),
-      AsyncStorage.getItem(BRACKET_KEY),
-    ]).then(([rawP, rawB]) => {
-      const stored = rawP ? JSON.parse(rawP) : {};
-      setPalpites(stored);
-      if (rawB) setBracket(JSON.parse(rawB));
+      supabase.from('palpites_jogos').select('*').eq('usuario_id', userId),
+      supabase.from('palpites_bracket').select('*').eq('usuario_id', userId),
+    ]).then(([{ data: p }, { data: b }]) => {
+      // Palpites por jogo
+      const pMap: PalpitesMap = {};
+      (p ?? []).forEach((r: { match_id: number; home_score: number; away_score: number }) => {
+        pMap[r.match_id] = { matchId: r.match_id, homeScore: r.home_score, awayScore: r.away_score };
+      });
+      setPalpites(pMap);
+
+      // Bracket
+      const bMap: BracketMap = {};
+      (b ?? []).forEach((r: { round: BracketRound; slot: number; tla: string; name: string }) => {
+        bMap[`${r.round}_${r.slot}`] = { round: r.round, slot: r.slot, tla: r.tla, name: r.name };
+      });
+      setBracket(bMap);
       setLoading(false);
     });
-  }, []);
+  }, [userId]);
 
   const savePalpite = useCallback(async (matchId: number, homeScore: number, awayScore: number) => {
-    const updated = { ...palpites, [matchId]: { matchId, homeScore, awayScore } };
-    setPalpites(updated);
-    await AsyncStorage.setItem(PALPITES_KEY, JSON.stringify(updated));
-  }, [palpites]);
+    if (!userId) return;
+    const { error } = await supabase
+      .from('palpites_jogos')
+      .upsert({ usuario_id: userId, match_id: matchId, home_score: homeScore, away_score: awayScore });
+    if (!error) {
+      setPalpites(prev => ({ ...prev, [matchId]: { matchId, homeScore, awayScore } }));
+    }
+  }, [userId]);
 
   const saveBracket = useCallback(async (round: BracketRound, slot: number, tla: string, name: string) => {
+    if (!userId) return;
     const key = `${round}_${slot}`;
-    const updated = { ...bracket, [key]: { round, slot, tla, name } };
-    setBracket(updated);
-    await AsyncStorage.setItem(BRACKET_KEY, JSON.stringify(updated));
-  }, [bracket]);
+    const { error } = await supabase
+      .from('palpites_bracket')
+      .upsert({ usuario_id: userId, round, slot, tla, name });
+    if (!error) {
+      setBracket(prev => ({ ...prev, [key]: { round, slot, tla, name } }));
+    }
+  }, [userId]);
 
   const removeBracket = useCallback(async (round: BracketRound, slot: number) => {
+    if (!userId) return;
     const key = `${round}_${slot}`;
-    const updated = { ...bracket };
-    delete updated[key];
-    setBracket(updated);
-    await AsyncStorage.setItem(BRACKET_KEY, JSON.stringify(updated));
-  }, [bracket]);
+    const { error } = await supabase
+      .from('palpites_bracket')
+      .delete()
+      .eq('usuario_id', userId)
+      .eq('round', String(round))
+      .eq('slot', slot);
+    if (!error) {
+      setBracket(prev => {
+        const updated = { ...prev };
+        delete updated[key];
+        return updated;
+      });
+    }
+  }, [userId]);
 
-  const resetAllPalpites = useCallback(async () => {
-    setPalpites({});
-    setBracket({});
-    await AsyncStorage.multiRemove([PALPITES_KEY, BRACKET_KEY]);
-  }, []);
-
-  return { palpites, bracket, loading, savePalpite, saveBracket, removeBracket, resetAllPalpites };
+  return { palpites, bracket, loading, savePalpite, saveBracket, removeBracket };
 }

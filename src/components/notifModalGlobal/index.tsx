@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from 'styled-components/native';
 import { useFavoritesContext } from '../../providers/FavoritesProvider';
 import { useNotifSettingsContext } from '../../providers/NotifSettingsProvider';
+import { useAuth } from '../../providers/AuthProvider';
 import { ALL_TEAMS } from '../../utils/allTeams';
 import {
   Overlay,
@@ -44,6 +45,7 @@ interface Props {
 
 export function NotifModalGlobal({ visible, onClose }: Props) {
   const theme = useTheme();
+  const { isGuest } = useAuth();
   const { favorites, isFavorite, toggleFavorite } = useFavoritesContext();
   const { notifyFavorites, notifyAll, toggleNotifyFavorites, toggleNotifyAll } =
     useNotifSettingsContext();
@@ -137,7 +139,9 @@ export function NotifModalGlobal({ visible, onClose }: Props) {
             {/* ── Times favoritos ──────────────────────────── */}
             <SectionLabel>Times favoritos</SectionLabel>
 
-            {favorites.length === 0 ? (
+            {isGuest ? (
+              <EmptyFavText>Crie uma conta para favoritar times e receber notificações personalizadas.</EmptyFavText>
+            ) : favorites.length === 0 ? (
               <EmptyFavText>Nenhum time adicionado ainda.</EmptyFavText>
             ) : (
               <FavList>
@@ -156,10 +160,12 @@ export function NotifModalGlobal({ visible, onClose }: Props) {
               </FavList>
             )}
 
-            <AddTeamBtn onPress={() => setShowPicker(true)} style={{ margin: 16, alignSelf: 'flex-start' }}>
-              <Ionicons name="add" size={14} color={theme.colors.text.mid} />
-              <AddTeamBtnText>Adicionar time</AddTeamBtnText>
-            </AddTeamBtn>
+            {!isGuest && (
+              <AddTeamBtn onPress={() => setShowPicker(true)} style={{ margin: 16, alignSelf: 'flex-start' }}>
+                <Ionicons name="add" size={14} color={theme.colors.text.mid} />
+                <AddTeamBtnText>Adicionar time</AddTeamBtnText>
+              </AddTeamBtn>
+            )}
           </ScrollView>
         </Sheet>
       </Overlay>

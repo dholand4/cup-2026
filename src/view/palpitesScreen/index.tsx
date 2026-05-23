@@ -593,7 +593,8 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
 
 export function PalpitesScreen() {
   const { live, today, upcoming, recent, loading, refresh } = useMatchesContext();
-  const { palpites, bracket, savePalpite, saveBracket, removeBracket } = usePalpites();
+  const { user, isGuest, signOut } = useAuth();
+  const { palpites, bracket, savePalpite, saveBracket, removeBracket } = usePalpites(user?.id ?? null);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('jogos');
 
@@ -649,7 +650,6 @@ export function PalpitesScreen() {
   const points        = gamePoints + bracketPoints;
 
   // ── Sync points to Supabase (debounced 2s) + sinaliza ranking ────────
-  const { user } = useAuth();
   const [rankingRefreshKey, setRankingRefreshKey] = useState(0);
   useEffect(() => {
     if (!user?.id) return;
@@ -741,7 +741,16 @@ export function PalpitesScreen() {
             </TabBtn>
           </TabSwitcher>
 
-          {activeTab === 'jogos' && (
+          {activeTab === 'jogos' && isGuest && (
+            <GuestBanner>
+              <GuestBannerText>{'Crie uma conta para fazer\npalpites e competir com amigos! 🏆'}</GuestBannerText>
+              <LigaActionBtn onPress={signOut}>
+                <LigaActionBtnText>Criar conta ou entrar</LigaActionBtnText>
+              </LigaActionBtn>
+            </GuestBanner>
+          )}
+
+          {activeTab === 'jogos' && !isGuest && (
             <>
               {pages.length > 1 && (
                 <PaginationRow>
@@ -811,7 +820,16 @@ export function PalpitesScreen() {
             </>
           )}
 
-          {activeTab === 'bracket' && (
+          {activeTab === 'bracket' && isGuest && (
+            <GuestBanner>
+              <GuestBannerText>{'Crie uma conta para palpitar\nna Fase Final da Copa! 🏆'}</GuestBannerText>
+              <LigaActionBtn onPress={signOut}>
+                <LigaActionBtnText>Criar conta ou entrar</LigaActionBtnText>
+              </LigaActionBtn>
+            </GuestBanner>
+          )}
+
+          {activeTab === 'bracket' && !isGuest && (
             <BracketTab
               bracket={bracket}
               locked={bracketLocked}

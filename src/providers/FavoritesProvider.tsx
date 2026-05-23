@@ -1,12 +1,14 @@
 import React, { createContext, useContext } from 'react';
 import { useFavorites } from '../hooks/useFavorites';
+import { useAuth } from './AuthProvider';
 
 type FavoritesContextType = ReturnType<typeof useFavorites>;
 
 const FavoritesContext = createContext<FavoritesContextType | null>(null);
 
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
-  const value = useFavorites();
+  const { user } = useAuth();
+  const value = useFavorites(user?.id ?? null);
   return (
     <FavoritesContext.Provider value={value}>
       {children}
