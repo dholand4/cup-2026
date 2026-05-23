@@ -106,12 +106,12 @@ export function MatchCardGlobal({ match, large = false, compact = false, showTea
           <ScorersRow>
             <ScorerSide>
               {homeGoals.map((g, i) => (
-                <ScorerEntry key={i}>{g.scorer.name} {g.minute}'</ScorerEntry>
+                <ScorerEntry key={i}>{g.scorer?.name ?? '?'} {g.minute}'</ScorerEntry>
               ))}
             </ScorerSide>
             <ScorerSide right>
               {awayGoals.map((g, i) => (
-                <ScorerEntry key={i}>{g.scorer.name} {g.minute}'</ScorerEntry>
+                <ScorerEntry key={i}>{g.scorer?.name ?? '?'} {g.minute}'</ScorerEntry>
               ))}
             </ScorerSide>
           </ScorersRow>
@@ -166,12 +166,12 @@ export function MatchCardGlobal({ match, large = false, compact = false, showTea
           <ScorersRow>
             <ScorerSide>
               {homeGoals.map((g, i) => (
-                <ScorerEntry key={i}>{g.scorer.name} {g.minute}'</ScorerEntry>
+                <ScorerEntry key={i}>{g.scorer?.name ?? '?'} {g.minute}'</ScorerEntry>
               ))}
             </ScorerSide>
             <ScorerSide right>
               {awayGoals.map((g, i) => (
-                <ScorerEntry key={i}>{g.scorer.name} {g.minute}'</ScorerEntry>
+                <ScorerEntry key={i}>{g.scorer?.name ?? '?'} {g.minute}'</ScorerEntry>
               ))}
             </ScorerSide>
           </ScorersRow>

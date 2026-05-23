@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MOCK_PALPITES } from '../utils/mockPalpites';
 
 const PALPITES_KEY = '@copa2026:palpites';
 const BRACKET_KEY  = '@copa2026:bracket';
@@ -85,7 +84,7 @@ export function usePalpites() {
       AsyncStorage.getItem(BRACKET_KEY),
     ]).then(([rawP, rawB]) => {
       const stored = rawP ? JSON.parse(rawP) : {};
-      setPalpites({ ...MOCK_PALPITES, ...stored });
+      setPalpites(stored);
       if (rawB) setBracket(JSON.parse(rawB));
       setLoading(false);
     });

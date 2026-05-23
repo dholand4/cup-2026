@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import {
   ScrollView, RefreshControl, ActivityIndicator,
   KeyboardAvoidingView, Platform, Modal, FlatList, TouchableOpacity, Alert, Share,
@@ -11,7 +11,7 @@ import {
   usePalpites, getPalpiteResult, IPalpite,
   BRACKET_ROUNDS, BracketRound, getBracketPoints,
 } from '../../hooks/usePalpites';
-import { MOCK_ACTUAL_BRACKET } from '../../utils/mockPalpites';
+import { ActualBracket } from '../../hooks/usePalpites';
 import { CrestGlobal } from '../../components/crestGlobal';
 import { EmptyStateGlobal } from '../../components/emptyStateGlobal';
 import { isToday, formatDayShort, formatTime } from '../../utils/dateUtils';
@@ -19,6 +19,7 @@ import { ALL_TEAMS, ITeamOption } from '../../utils/allTeams';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../providers/AuthProvider';
 import { useLiga } from '../../hooks/useLiga';
+import { supabase } from '../../services/supabaseClient';
 import {
   Screen, Header, WordmarkCopa, WordmarkYear, Wordmark, SubTitle,
   StatsBar, StatChip, StatValue, StatLabel,
@@ -182,9 +183,56 @@ function PalpiteCardItem({ match, palpite, onSave }: IPalpiteCardProps) {
   );
 }
 
+// ── buildActualBracket ────────────────────────────────────────────────
+// Calcula o ActualBracket dinamicamente dos resultados reais dos jogos.
+// Quarters = times classificados da fase de grupos (top 2/grupo)
+// Semis    = times que disputaram as semifinais
+// Final    = times que disputaram a final
+// Champion = vencedor da final
+
+function buildActualBracket(allMatches: IMatch[]): ActualBracket {
+  const actual: ActualBracket = {};
+
+  // ── Quarters: times que disputaram as quartas de final (Copa real) ───
+  // A Copa 2026 tem: ROUND_OF_32 → ROUND_OF_16 → QUARTER_FINALS → SEMI_FINALS → FINAL
+  const quarterMatches = allMatches.filter(
+    m => m.stage === 'QUARTER_FINALS' && m.homeTeam.tla !== 'TBD',
+  );
+  quarterMatches.forEach(m => {
+    actual[`quarters_${m.homeTeam.tla}`] = true;
+    actual[`quarters_${m.awayTeam.tla}`] = true;
+  });
+
+  // ── Semis: times que disputaram as semifinais ─────────────────────────
+  allMatches
+    .filter(m => m.stage === 'SEMI_FINALS' && m.homeTeam.tla !== 'TBD')
+    .forEach(m => {
+      actual[`semis_${m.homeTeam.tla}`] = true;
+      actual[`semis_${m.awayTeam.tla}`] = true;
+    });
+
+  // ── Final: times que disputaram a final + campeão ────────────────────
+  allMatches
+    .filter(m => m.stage === 'FINAL' && m.homeTeam.tla !== 'TBD')
+    .forEach(m => {
+      actual[`final_${m.homeTeam.tla}`] = true;
+      actual[`final_${m.awayTeam.tla}`] = true;
+      if (m.status === 'FINISHED') {
+        const hg = m.score.fullTime.home;
+        const ag = m.score.fullTime.away;
+        if (hg !== null && ag !== null) {
+          if      (hg > ag) actual[`champion_${m.homeTeam.tla}`] = true;
+          else if (ag > hg) actual[`champion_${m.awayTeam.tla}`] = true;
+        }
+      }
+    });
+
+  return actual;
+}
+
 // ── BracketTab ─────────────────────────────────────────────────────────
 
-const NON_GROUP_STAGES = ['ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'];
+const NON_GROUP_STAGES = ['ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'];
 
 interface IBracketTabProps {
   bracket: Record<string, any>;
@@ -198,11 +246,23 @@ function BracketTab({ bracket, locked, actual, onSave, onRemove }: IBracketTabPr
   const [picker, setPicker] = useState<{ round: BracketRound; slot: number } | null>(null);
   const [search, setSearch] = useState('');
 
+  // Times já escolhidos no round aberto no picker (para evitar duplicatas)
+  const usedInRound = useMemo(() => {
+    if (!picker) return new Set<string>();
+    return new Set(
+      Object.values(bracket)
+        .filter((s: any) => s.round === picker.round)
+        .map((s: any) => s.tla),
+    );
+  }, [picker, bracket]);
+
   const filteredTeams = useMemo(() =>
     ALL_TEAMS.filter(t =>
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
-      t.tla.toLowerCase().includes(search.toLowerCase()),
-    ), [search]);
+      !usedInRound.has(t.tla) && (
+        t.name.toLowerCase().includes(search.toLowerCase()) ||
+        t.tla.toLowerCase().includes(search.toLowerCase())
+      ),
+    ), [search, usedInRound]);
 
   const handlePick = (team: ITeamOption) => {
     if (!picker) return;
@@ -324,10 +384,15 @@ function BracketTab({ bracket, locked, actual, onSave, onRemove }: IBracketTabPr
 
 // ── RankingTab ─────────────────────────────────────────────────────────
 
-function RankingTab() {
+function RankingTab({ pointsKey }: { pointsKey: number }) {
   const { user, isGuest, signOut }                                               = useAuth();
   const { ligas, selectedLiga, ranking, loading, selectLiga,
-          createLiga, joinLiga, leaveLiga }                                       = useLiga(user?.id);
+          createLiga, joinLiga, leaveLiga, refresh }                             = useLiga(user?.id);
+
+  // Re-busca o ranking quando os pontos são sincronizados no Supabase
+  useEffect(() => {
+    if (pointsKey > 0) refresh();
+  }, [pointsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [showCreate,   setShowCreate]   = useState(false);
   const [showJoin,     setShowJoin]     = useState(false);
@@ -578,9 +643,27 @@ export function PalpitesScreen() {
     ),
   [allMatches]);
 
-  // Stats — bracket (actual bracket populated from API when knockout stage starts)
-  const bracketPoints = getBracketPoints(bracket, MOCK_ACTUAL_BRACKET);
+  // Stats — bracket calculado dos resultados reais dos matches
+  const actualBracket = useMemo(() => buildActualBracket(allMatches), [allMatches]);
+  const bracketPoints = getBracketPoints(bracket, actualBracket);
   const points        = gamePoints + bracketPoints;
+
+  // ── Sync points to Supabase (debounced 2s) + sinaliza ranking ────────
+  const { user } = useAuth();
+  const [rankingRefreshKey, setRankingRefreshKey] = useState(0);
+  useEffect(() => {
+    if (!user?.id) return;
+    const timer = setTimeout(async () => {
+      await supabase
+        .from('membros_liga')
+        .update({ pontos: points })
+        .eq('usuario_id', user.id);
+      // Avisa RankingTab que os pontos mudaram → ele re-busca do Supabase
+      setRankingRefreshKey(k => k + 1);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [points, user?.id]);
+  // ─────────────────────────────────────────────────────────────────────
 
   // Group current page matches by date
   const byDate = useMemo(() => {
@@ -732,13 +815,13 @@ export function PalpitesScreen() {
             <BracketTab
               bracket={bracket}
               locked={bracketLocked}
-              actual={MOCK_ACTUAL_BRACKET}
+              actual={actualBracket}
               onSave={saveBracket}
               onRemove={removeBracket}
             />
           )}
 
-          {activeTab === 'ranking' && <RankingTab />}
+          {activeTab === 'ranking' && <RankingTab pointsKey={rankingRefreshKey} />}
 
           <BottomSpacer />
         </ScrollView>

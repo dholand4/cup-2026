@@ -1,10 +1,9 @@
 import {
-  IMatch, IStandingsResponse,
+  IMatch, IStandingsResponse, AllMatchesPayload,
   IScorer, ITeamDetail, IMatchDetail,
 } from '../@types';
 import { translateTeam } from '../utils/teamNames';
 
-// Sempre usa o backend Vercel
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://copa2026-backend.vercel.app';
 
 function translateMatch(m: IMatch): IMatch {
@@ -17,20 +16,12 @@ function translateMatch(m: IMatch): IMatch {
 
 async function backendFetch<T>(path: string): Promise<T> {
   const url = `${BACKEND_URL}${path}`;
-  const res  = await fetch(url);
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`API erro ${res.status}: ${path}`);
   return res.json() as Promise<T>;
 }
 
-// ── Matches ───────────────────────────────────────────────────────────
-
-export interface AllMatchesPayload {
-  live:     IMatch[];
-  today:    IMatch[];
-  upcoming: IMatch[];
-  recent:   IMatch[];
-  hasLive:  boolean;
-}
+// ── Partidas ──────────────────────────────────────────────────────────
 
 export async function getAllMatches(): Promise<AllMatchesPayload> {
   const data = await backendFetch<AllMatchesPayload>('/api/matches');
@@ -43,7 +34,7 @@ export async function getAllMatches(): Promise<AllMatchesPayload> {
   };
 }
 
-// ── Standings ─────────────────────────────────────────────────────────
+// ── Classificação ─────────────────────────────────────────────────────
 
 export async function getStandings(): Promise<IStandingsResponse> {
   const data = await backendFetch<{ standings: any[] }>('/api/standings');
@@ -80,8 +71,8 @@ export async function getMatchDetail(id: number): Promise<IMatchDetail> {
     goals:          data.goals          ?? [],
     bookings:       data.bookings       ?? [],
     substitutions:  data.substitutions  ?? [],
-    homeTeamLineup: data.homeTeam?.lineup  ?? [],
-    awayTeamLineup: data.awayTeam?.lineup  ?? [],
+    homeTeamLineup: data.homeTeam?.lineup   ?? [],
+    awayTeamLineup: data.awayTeam?.lineup   ?? [],
     homeFormation:  data.homeTeam?.formation ?? null,
     awayFormation:  data.awayTeam?.formation ?? null,
   };

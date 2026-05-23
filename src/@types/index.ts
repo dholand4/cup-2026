@@ -9,7 +9,7 @@ export interface ITeam {
 export interface IGoal {
   minute: number;
   team: { id: number; name: string };
-  scorer: { id: number; name: string };
+  scorer: { id: number; name: string } | null;
   type: string;
 }
 
@@ -67,6 +67,14 @@ export interface IGroup {
 
 export interface IStandingsResponse {
   standings: IGroup[];
+}
+
+export interface AllMatchesPayload {
+  live:     IMatch[];
+  today:    IMatch[];
+  upcoming: IMatch[];
+  recent:   IMatch[];
+  hasLive:  boolean;
 }
 
 export interface IMatchesResponse {

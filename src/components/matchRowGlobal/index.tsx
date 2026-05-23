@@ -109,12 +109,12 @@ export function MatchRowGlobal({ match, homeFav = false, awayFav = false, onPres
         <GoalsRow>
           <GoalsSide>
             {homeGoals.map((g, i) => (
-              <GoalEntry key={i}>{g.scorer.name} {g.minute}'</GoalEntry>
+              <GoalEntry key={i}>{g.scorer?.name ?? '?'} {g.minute}'</GoalEntry>
             ))}
           </GoalsSide>
           <GoalsSide right>
             {awayGoals.map((g, i) => (
-              <GoalEntry key={i}>{g.scorer.name} {g.minute}'</GoalEntry>
+              <GoalEntry key={i}>{g.scorer?.name ?? '?'} {g.minute}'</GoalEntry>
             ))}
           </GoalsSide>
         </GoalsRow>
