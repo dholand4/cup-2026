@@ -7,6 +7,47 @@ import { supabase } from '../services/supabaseClient';
 
 const GUEST_KEY = '@copa2026:isGuest';
 
+// ── Tradução de erros do Supabase ────────────────────────────────────────
+function translateAuthError(msg: string): string {
+  const m = msg.toLowerCase();
+
+  if (m.includes('invalid login credentials') || m.includes('invalid email or password'))
+    return 'E-mail ou senha incorretos.';
+  if (m.includes('email not confirmed'))
+    return 'Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.';
+  if (m.includes('user already registered') || m.includes('email already in use') || m.includes('already registered'))
+    return 'Este e-mail já possui uma conta. Tente entrar.';
+  if (m.includes('password should be at least') || m.includes('password must be at least'))
+    return 'A senha precisa ter pelo menos 6 caracteres.';
+  if (m.includes('new password should be different'))
+    return 'A nova senha deve ser diferente da anterior.';
+  if (m.includes('token has expired') || m.includes('otp has expired') || m.includes('token is invalid') || m.includes('invalid token'))
+    return 'Código inválido ou expirado. Solicite um novo.';
+  if (m.includes('email link is invalid') || m.includes('link is invalid'))
+    return 'Link inválido ou expirado. Solicite um novo.';
+  if (m.includes('user not found') || m.includes('no user found'))
+    return 'Nenhuma conta encontrada com este e-mail.';
+  if (m.includes('invalid email') || m.includes('unable to validate email') || m.includes('invalid format'))
+    return 'Formato de e-mail inválido.';
+  if (m.includes('rate limit') || m.includes('too many requests') || m.includes('over_email_send_rate_limit') || m.includes('email rate limit'))
+    return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+  if (m.includes('for security purposes') || m.includes('you can only request this after'))
+    return 'Aguarde alguns segundos antes de tentar novamente.';
+  if (m.includes('signup is disabled') || m.includes('signups not allowed'))
+    return 'Cadastro temporariamente desabilitado.';
+  if (m.includes('database error') || m.includes('unexpected error'))
+    return 'Erro interno. Tente novamente em instantes.';
+  if (m.includes('network') || m.includes('fetch') || m.includes('failed to fetch'))
+    return 'Sem conexão com a internet. Verifique sua rede.';
+  if (m.includes('weak password') || m.includes('password is too weak'))
+    return 'Senha muito fraca. Use letras, números ou símbolos.';
+  if (m.includes('same password') || m.includes('should be different'))
+    return 'A nova senha deve ser diferente da anterior.';
+
+  // Fallback: retorna a mensagem original para não esconder erros desconhecidos
+  return msg;
+}
+
 interface IAuthContext {
   session:                  Session | null;
   user:                     User | null;
@@ -53,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string): Promise<string | null> => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return error.message;
+    if (error) return translateAuthError(error.message);
     await AsyncStorage.removeItem(GUEST_KEY);
     return null;
   }, []);
@@ -70,14 +111,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (existing) return 'Esse apelido já está em uso.';
 
     const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return error.message;
+    if (error) return translateAuthError(error.message);
     if (!data.user) return 'Erro ao criar usuário.';
 
     const { error: profileError } = await supabase
       .from('perfis')
       .insert({ id: data.user.id, apelido: apelido.trim() });
 
-    if (profileError) return profileError.message;
+    if (profileError) return translateAuthError(profileError.message);
     await AsyncStorage.removeItem(GUEST_KEY);
     return null;
   }, []);
@@ -104,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const sendPasswordReset = useCallback(async (email: string): Promise<string | null> => {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
-    if (error) return error.message;
+    if (error) return translateAuthError(error.message);
     return null;
   }, []);
 
@@ -125,11 +166,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token: token.trim(),
         type: 'recovery',
       });
-      if (verifyError) return verifyError.message;
+      if (verifyError) return translateAuthError(verifyError.message);
     }
 
     const { error } = await supabase.auth.updateUser({ password });
-    if (error) return error.message;
+    if (error) return translateAuthError(error.message);
 
     setRecoveryPending(false);
     return null;
