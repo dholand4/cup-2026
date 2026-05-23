@@ -498,3 +498,21 @@ export const ChampionName = styled.Text`
   letter-spacing: 2px;
   color: ${({ theme }) => theme.colors.accent.gold};
 `;
+
+export const BracketPendingBox = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
+  border-radius: ${({ theme }) => theme.borderRadius.sm}px;
+  border-width: 1px;
+  border-style: dashed;
+  border-color: ${({ theme }) => theme.colors.border};
+  gap: 6px;
+`;
+
+export const BracketPendingText = styled.Text`
+  font-family: Manrope_600SemiBold;
+  font-size: 10px;
+  color: ${({ theme }) => theme.colors.text.muted};
+`;

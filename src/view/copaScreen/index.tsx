@@ -27,6 +27,7 @@ import {
   BracketFinalSection, BracketFinalLabel, BracketFinalCard,
   BracketFinalTeamLine, BracketFinalTLA, BracketFinalScore,
   ChampionBanner, ChampionLabel, ChampionName,
+  BracketPendingBox, BracketPendingText,
 } from './style';
 
 type ActiveTab = 'grupos' | 'chaveamento' | 'artilheiros';
@@ -178,10 +179,9 @@ function ArtilheirosTab() {
 // ── ChaveamentoTab ─────────────────────────────────────────────────────
 
 const KNOCKOUT_STAGES = [
-  { key: 'ROUND_OF_32',    label: 'Rodada de 32',    count: 16 },
-  { key: 'ROUND_OF_16',    label: 'Oitavas de Final', count: 8  },
-  { key: 'QUARTER_FINALS', label: 'Quartas de Final', count: 4  },
-  { key: 'SEMI_FINALS',    label: 'Semifinais',       count: 2  },
+  { key: 'ROUND_OF_16',    label: 'Oitavas de Final', count: 8 },
+  { key: 'QUARTER_FINALS', label: 'Quartas de Final', count: 4 },
+  { key: 'SEMI_FINALS',    label: 'Semifinais',       count: 2 },
 ] as const;
 
 function isTbd(tla: string | undefined): boolean {
@@ -331,8 +331,8 @@ function ChaveamentoTab() {
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       {KNOCKOUT_STAGES.map(stage => {
-        const matches = byStage[stage.key];
-        if (!matches || matches.length === 0) return null;
+        const matches = byStage[stage.key] ?? [];
+        const hasPending = matches.length === 0;
 
         const mid   = Math.ceil(matches.length / 2);
         const left  = matches.slice(0, mid);
@@ -342,20 +342,29 @@ function ChaveamentoTab() {
           <BracketRoundSection key={stage.key}>
             <BracketRoundHeader>
               <BracketRoundLabel>{stage.label}</BracketRoundLabel>
-              <BracketRoundCount>{matches.length} jogos</BracketRoundCount>
+              {!hasPending && (
+                <BracketRoundCount>{matches.length} jogos</BracketRoundCount>
+              )}
             </BracketRoundHeader>
 
-            <BracketSidesRow>
-              <BracketSide>
-                <BracketSideLabel>◀ Chave A</BracketSideLabel>
-                {left.map(m => <BracketMatchItem key={m.id} match={m} />)}
-              </BracketSide>
+            {hasPending ? (
+              <BracketPendingBox>
+                <Ionicons name="time-outline" size={14} color={theme.colors.text.muted} />
+                <BracketPendingText>Aguardando fase anterior</BracketPendingText>
+              </BracketPendingBox>
+            ) : (
+              <BracketSidesRow>
+                <BracketSide>
+                  <BracketSideLabel>◀ Chave A</BracketSideLabel>
+                  {left.map(m => <BracketMatchItem key={m.id} match={m} />)}
+                </BracketSide>
 
-              <BracketSide>
-                <BracketSideLabel style={{ textAlign: 'right' }}>Chave B ▶</BracketSideLabel>
-                {right.map(m => <BracketMatchItem key={m.id} match={m} />)}
-              </BracketSide>
-            </BracketSidesRow>
+                <BracketSide>
+                  <BracketSideLabel style={{ textAlign: 'right' }}>Chave B ▶</BracketSideLabel>
+                  {right.map(m => <BracketMatchItem key={m.id} match={m} />)}
+                </BracketSide>
+              </BracketSidesRow>
+            )}
           </BracketRoundSection>
         );
       })}
