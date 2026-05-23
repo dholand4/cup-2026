@@ -8,25 +8,30 @@ import { supabase } from '../services/supabaseClient';
 const GUEST_KEY = '@copa2026:isGuest';
 
 interface IAuthContext {
-  session:       Session | null;
-  user:          User | null;
-  isGuest:       boolean;
-  loading:       boolean;
-  signIn:        (email: string, password: string) => Promise<string | null>;
-  signUp:        (email: string, password: string, apelido: string) => Promise<string | null>;
-  signOut:       () => Promise<void>;
-  enterAsGuest:  () => Promise<void>;
+  session:                  Session | null;
+  user:                     User | null;
+  isGuest:                  boolean;
+  loading:                  boolean;
+  passwordRecoveryPending:  boolean;
+  signIn:                   (email: string, password: string) => Promise<string | null>;
+  signUp:                   (email: string, password: string, apelido: string) => Promise<string | null>;
+  signOut:                  () => Promise<void>;
+  enterAsGuest:             () => Promise<void>;
+  sendPasswordReset:        (email: string) => Promise<string | null>;
+  verifyAndUpdatePassword:  (email: string, token: string, password: string) => Promise<string | null>;
+  clearPasswordRecovery:    () => void;
 }
 
 const AuthContext = createContext<IAuthContext>({} as IAuthContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [isGuest, setIsGuest] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession]                         = useState<Session | null>(null);
+  const [isGuest, setIsGuest]                         = useState(false);
+  const [loading, setLoading]                         = useState(true);
+  const [passwordRecoveryPending, setRecoveryPending] = useState(false);
 
   useEffect(() => {
-    // Verifica sessão existente e modo visitante
+    // Restore existing session and guest flag
     Promise.all([
       supabase.auth.getSession(),
       AsyncStorage.getItem(GUEST_KEY),
@@ -36,10 +41,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    // Escuta mudanças de auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    // Listen for auth state changes (includes PASSWORD_RECOVERY for web magic links)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       if (s) setIsGuest(false);
+      if (event === 'PASSWORD_RECOVERY') setRecoveryPending(true);
     });
 
     return () => subscription.unsubscribe();
@@ -55,7 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(async (
     email: string, password: string, apelido: string,
   ): Promise<string | null> => {
-    // Verifica se apelido já existe
     const { data: existing } = await supabase
       .from('perfis')
       .select('apelido')
@@ -88,16 +93,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsGuest(true);
   }, []);
 
+  // ── Password Recovery ─────────────────────────────────────────────────
+
+  /**
+   * Step 1: sends a recovery e-mail.
+   * • Mobile: Supabase sends a 6-digit OTP (requires "Email OTP" enabled in
+   *   Supabase dashboard → Auth → Email → OTP expiry).
+   * • Web: Supabase sends a magic link; clicking it fires PASSWORD_RECOVERY
+   *   in onAuthStateChange, which sets passwordRecoveryPending = true.
+   */
+  const sendPasswordReset = useCallback(async (email: string): Promise<string | null> => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+    if (error) return error.message;
+    return null;
+  }, []);
+
+  /**
+   * Step 2: verify OTP (if token provided) then update the password.
+   * • Pass a non-empty token for the OTP/code flow (mobile).
+   * • Pass an empty token when passwordRecoveryPending is true (web magic link
+   *   already established the recovery session — no OTP needed).
+   */
+  const verifyAndUpdatePassword = useCallback(async (
+    email: string,
+    token: string,
+    password: string,
+  ): Promise<string | null> => {
+    if (token.trim().length > 0) {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: token.trim(),
+        type: 'recovery',
+      });
+      if (verifyError) return verifyError.message;
+    }
+
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) return error.message;
+
+    setRecoveryPending(false);
+    return null;
+  }, []);
+
+  const clearPasswordRecovery = useCallback(() => {
+    setRecoveryPending(false);
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       session,
       user: session?.user ?? null,
       isGuest,
       loading,
+      passwordRecoveryPending,
       signIn,
       signUp,
       signOut,
       enterAsGuest,
+      sendPasswordReset,
+      verifyAndUpdatePassword,
+      clearPasswordRecovery,
     }}>
       {children}
     </AuthContext.Provider>

@@ -47,6 +47,13 @@ export const Card = styled.View`
   padding: 24px;
 `;
 
+export const CardTitle = styled.Text`
+  font-family: Manrope_700Bold;
+  font-size: 17px;
+  color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: 20px;
+`;
+
 export const TabRow = styled.View`
   flex-direction: row;
   background-color: ${({ theme }) => theme.colors.background.primary};
@@ -113,6 +120,21 @@ export const ErrorText = styled.Text`
   text-align: center;
 `;
 
+export const SuccessText = styled.Text`
+  font-family: Manrope_600SemiBold;
+  font-size: 13px;
+  color: ${({ theme }) => theme.colors.success};
+  margin-top: 10px;
+  text-align: center;
+`;
+
+export const InfoText = styled.Text`
+  font-family: Manrope_400Regular;
+  font-size: 11px;
+  color: ${({ theme }) => theme.colors.text.muted};
+  margin-top: 6px;
+`;
+
 export const Divider = styled.View`
   flex-direction: row;
   align-items: center;
@@ -141,5 +163,27 @@ export const GuestBtn = styled.TouchableOpacity`
 export const GuestBtnText = styled.Text`
   font-family: Manrope_600SemiBold;
   font-size: 14px;
+  color: ${({ theme }) => theme.colors.text.secondary};
+`;
+
+export const LinkBtn = styled.TouchableOpacity`
+  padding: 10px 0 2px;
+  align-self: flex-end;
+`;
+
+export const LinkBtnText = styled.Text`
+  font-family: Manrope_600SemiBold;
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.accent.green};
+`;
+
+export const BackBtn = styled.TouchableOpacity`
+  padding: 10px 0 2px;
+  align-self: flex-start;
+`;
+
+export const BackBtnText = styled.Text`
+  font-family: Manrope_600SemiBold;
+  font-size: 13px;
   color: ${({ theme }) => theme.colors.text.secondary};
 `;
