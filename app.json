@@ -24,7 +24,10 @@
         "backgroundColor": "#0A0E1A"
       },
       "package": "com.copa2026.app",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "pan",
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35,
+      "minSdkVersion": 24
     },
     "web": {
       "bundler": "webpack",

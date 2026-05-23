@@ -15,7 +15,7 @@
     },
     "production": {
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://copa2026-backend.vercel.app",
