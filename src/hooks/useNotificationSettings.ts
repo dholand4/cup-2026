@@ -8,7 +8,7 @@ const NOTIF_KEY = '@copa2026:notifSettings';
 async function ensureAndroidChannel() {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('copa2026', {
-      name: 'Copa 2026',
+      name: 'Arena Score',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#00A550',

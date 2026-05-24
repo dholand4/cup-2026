@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Copa 2026",
+    "name": "Arena Score",
     "slug": "copa2026",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -32,8 +32,8 @@
     "web": {
       "bundler": "webpack",
       "favicon": "./src/assets/LOGO DQ.png",
-      "name": "Copa 2026",
-      "shortName": "Copa 26",
+      "name": "Arena Score",
+      "shortName": "Arena Score",
       "description": "Acompanhe a Copa do Mundo FIFA 2026 em tempo real — jogos ao vivo, grupos, palpites e artilheiros",
       "backgroundColor": "#0A0E1A",
       "themeColor": "#00A550",

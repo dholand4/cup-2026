@@ -424,7 +424,7 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
 
   const handleShare = useCallback(async () => {
     if (!selectedLiga) return;
-    await Share.share({ message: `Entre na minha liga Copa 2026!\nCódigo: ${selectedLiga.codigo}` });
+    await Share.share({ message: `Entre na minha liga no Arena Score!\nCódigo: ${selectedLiga.codigo}` });
   }, [selectedLiga]);
 
   const handleLeave = useCallback((liga: typeof selectedLiga) => {
