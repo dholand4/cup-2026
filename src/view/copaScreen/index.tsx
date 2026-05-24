@@ -179,6 +179,7 @@ function ArtilheirosTab() {
 // ── ChaveamentoTab ─────────────────────────────────────────────────────
 
 const KNOCKOUT_STAGES = [
+  { key: 'ROUND_OF_32',    label: '16avos de Final',  count: 16 },
   { key: 'ROUND_OF_16',    label: 'Oitavas de Final', count: 8 },
   { key: 'QUARTER_FINALS', label: 'Quartas de Final', count: 4 },
   { key: 'SEMI_FINALS',    label: 'Semifinais',       count: 2 },
