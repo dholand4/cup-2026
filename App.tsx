@@ -27,6 +27,7 @@ import { MatchesProvider } from './src/providers/MatchesProvider';
 import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AppNavigator } from './src/routes';
 import { AuthScreen } from './src/view/authScreen';
+import { PwaInstallBanner } from './src/components/pwaInstallBanner';
 import { theme } from './src/constants/theme';
 
 // Show notifications even when the app is in foreground
@@ -106,7 +107,10 @@ export default function App() {
               <MatchesProvider>
                 <StatusBar style="light" backgroundColor={theme.colors.background.primary} />
                 <TooltipProvider>
-                  <RootNavigator />
+                  <View style={{ flex: 1 }}>
+                    <RootNavigator />
+                    <PwaInstallBanner />
+                  </View>
                 </TooltipProvider>
               </MatchesProvider>
             </NotifSettingsProvider>

@@ -38,10 +38,11 @@
       "backgroundColor": "#0A0E1A",
       "themeColor": "#00A550",
       "lang": "pt-BR",
+      "preferRelatedApplications": false,
       "meta": {
         "apple-mobile-web-app-capable": "yes",
         "apple-mobile-web-app-status-bar-style": "black-translucent",
-        "apple-mobile-web-app-title": "Copa 26"
+        "apple-mobile-web-app-title": "Arena Score"
       }
     },
     "plugins": [
