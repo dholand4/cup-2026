@@ -29,10 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { title, body, icon, userId } = req.body;
   if (!title || !body) return res.status(400).json({ error: 'title and body required' });
 
-  const payload = Buffer.from(
-    JSON.stringify({ title, body, icon: icon ?? '/pwa-icons/icon-192x192.png' }),
-    'utf8',
-  );
+  const payload = JSON.stringify({ title, body, icon: icon ?? '/pwa-icons/icon-192x192.png' });
 
   // Busca todas as subscrições (ou filtra por userId se fornecido)
   let query = supabase.from('push_subscriptions').select('subscription');
@@ -43,7 +40,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!data || data.length === 0) return res.status(200).json({ sent: 0 });
 
   const results = await Promise.allSettled(
-    data.map(row => webpush.sendNotification(row.subscription, payload)),
+    data.map(row => webpush.sendNotification(row.subscription, payload, {
+      contentEncoding: 'aesgcm',
+    })),
   );
 
   const sent   = results.filter(r => r.status === 'fulfilled').length;

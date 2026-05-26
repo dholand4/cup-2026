@@ -4,7 +4,13 @@ self.addEventListener('push', event => {
   if (!event.data) return;
 
   let data = {};
-  try { data = event.data.json(); } catch { data = { title: 'Arena Score', body: event.data.text() }; }
+  try {
+    // Força decodificação UTF-8 explícita
+    const text = event.data.text();
+    data = JSON.parse(text);
+  } catch {
+    data = { title: 'Arena Score', body: '' };
+  }
 
   const title   = data.title ?? 'Arena Score';
   const options = {
