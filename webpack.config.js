@@ -62,7 +62,10 @@ module.exports = async function (env, argv) {
   // Copy push service worker to build output
   const CopyWebpackPlugin = (() => { try { return require('copy-webpack-plugin'); } catch { return null; } })();
   const swPlugin = CopyWebpackPlugin
-    ? new CopyWebpackPlugin({ patterns: [{ from: path.resolve('./web/push-sw.js'), to: 'push-sw.js' }] })
+    ? new CopyWebpackPlugin({ patterns: [
+        { from: path.resolve('./web/push-sw.js'),      to: 'push-sw.js'      },
+        { from: path.resolve('./web/badge-96x96.png'), to: 'badge-96x96.png' },
+      ]})
     : null;
 
   // Inject manifest fix plugin + SW copy

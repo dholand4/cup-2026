@@ -29,7 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { title, body, icon, userId } = req.body;
   if (!title || !body) return res.status(400).json({ error: 'title and body required' });
 
-  const payload = JSON.stringify({ title, body, icon: icon ?? '/pwa-icons/icon-192x192.png' });
+  const payload = Buffer.from(
+    JSON.stringify({ title, body, icon: icon ?? '/pwa-icons/icon-192x192.png' }),
+    'utf8',
+  );
 
   // Busca todas as subscrições (ou filtra por userId se fornecido)
   let query = supabase.from('push_subscriptions').select('subscription');
