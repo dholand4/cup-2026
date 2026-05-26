@@ -28,6 +28,7 @@ import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AppNavigator } from './src/routes';
 import { AuthScreen } from './src/view/authScreen';
 import { PwaInstallBanner } from './src/components/pwaInstallBanner';
+import { useWebPush } from './src/hooks/useWebPush';
 import { theme } from './src/constants/theme';
 
 // Show notifications even when the app is in foreground
@@ -43,6 +44,7 @@ Notifications.setNotificationHandler({
 
 function RootNavigator() {
   const { session, isGuest, loading } = useAuth();
+  useWebPush(session?.user?.id ?? null);
 
   if (loading) {
     return (

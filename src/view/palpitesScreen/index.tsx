@@ -44,6 +44,11 @@ import {
   GuestBanner, GuestBannerText,
   LigaListContainer, LigaListItem, LigaListItemName, LigaListItemCode,
   LigaActionsRow, LigaActionSmallBtn, LigaActionSmallBtnText,
+  InfoBtn,
+  RulesOverlay, RulesSheet, RulesHandle, RulesTitle, RulesSubtitle,
+  RulesSection, RulesRow, RulesDot, RulesText, RulesPts,
+  RulesCloseBtn, RulesCloseBtnText,
+  HeaderRow,
 } from './style';
 
 type ActiveTab = 'jogos' | 'bracket' | 'ranking';
@@ -607,14 +612,62 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
   );
 }
 
+// ── RulesModal ─────────────────────────────────────────────────────────
+
+function RulesModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <RulesOverlay>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+        <RulesSheet>
+          <RulesHandle />
+          <RulesTitle>Como Pontuar</RulesTitle>
+          <RulesSubtitle>Palpites bloqueiam 10 min antes do jogo</RulesSubtitle>
+
+          <RulesSection>Por Jogo</RulesSection>
+          <RulesRow>
+            <RulesDot color={theme.colors.accent.green} />
+            <RulesText>Placar exato (vitória ou empate)</RulesText>
+            <RulesPts>+10 pts</RulesPts>
+          </RulesRow>
+          <RulesRow>
+            <RulesDot color={theme.colors.accent.gold} />
+            <RulesText>Acertou vencedor ou empate</RulesText>
+            <RulesPts>+7 pts</RulesPts>
+          </RulesRow>
+          <RulesRow>
+            <RulesDot color={theme.colors.accent.live} />
+            <RulesText>Errou</RulesText>
+            <RulesPts style={{ color: theme.colors.text.secondary }}>0 pts</RulesPts>
+          </RulesRow>
+
+          <RulesSection>Fase Final — Times Classificados</RulesSection>
+          {BRACKET_ROUNDS.map(r => (
+            <RulesRow key={r.key}>
+              <RulesDot color={theme.colors.accent.green} />
+              <RulesText>{r.label}</RulesText>
+              <RulesPts>+{r.pts} pts</RulesPts>
+            </RulesRow>
+          ))}
+
+          <RulesCloseBtn onPress={onClose}>
+            <RulesCloseBtnText>Entendi</RulesCloseBtnText>
+          </RulesCloseBtn>
+        </RulesSheet>
+      </RulesOverlay>
+    </Modal>
+  );
+}
+
 // ── PalpitesScreen ─────────────────────────────────────────────────────
 
 export function PalpitesScreen() {
   const { live, today, upcoming, recent, knockout, loading, refresh } = useMatchesContext();
   const { user, isGuest, signOut } = useAuth();
   const { palpites, bracket, savePalpite, saveBracket, removeBracket } = usePalpites(user?.id ?? null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('jogos');
+  const [refreshing, setRefreshing]   = useState(false);
+  const [activeTab, setActiveTab]     = useState<ActiveTab>('jogos');
+  const [showRules, setShowRules]     = useState(false);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -722,11 +775,17 @@ export function PalpitesScreen() {
           }
         >
           <Header>
-            <Wordmark>
-              <WordmarkCopa>PALPITES</WordmarkCopa>
-            </Wordmark>
+            <HeaderRow>
+              <Wordmark>
+                <WordmarkCopa>PALPITES</WordmarkCopa>
+              </Wordmark>
+              <InfoBtn onPress={() => setShowRules(true)}>
+                <Ionicons name="information-circle-outline" size={26} color={theme.colors.text.secondary} />
+              </InfoBtn>
+            </HeaderRow>
             <SubTitle>Faça suas previsões · Copa 2026</SubTitle>
           </Header>
+          <RulesModal visible={showRules} onClose={() => setShowRules(false)} />
 
           <StatsBar>
             <StatChip>

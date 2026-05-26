@@ -716,3 +716,100 @@ export const GuestBannerText = styled.Text`
   line-height: 22px;
   margin-bottom: 20px;
 `;
+
+// ── Info button ────────────────────────────────────────────────────────
+
+export const InfoBtn = styled.TouchableOpacity`
+  padding: 4px 6px;
+`;
+
+// ── Rules modal ────────────────────────────────────────────────────────
+
+export const RulesOverlay = styled.View`
+  flex: 1;
+  background-color: rgba(0,0,0,0.6);
+  justify-content: flex-end;
+`;
+
+export const RulesSheet = styled.View`
+  background-color: ${({ theme }) => theme.colors.background.secondary};
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 20px 20px 36px;
+`;
+
+export const RulesHandle = styled.View`
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background-color: ${({ theme }) => theme.colors.border};
+  align-self: center;
+  margin-bottom: 16px;
+`;
+
+export const RulesTitle = styled.Text`
+  font-family: Anton_400Regular;
+  font-size: 20px;
+  letter-spacing: 0.8px;
+  color: ${({ theme }) => theme.colors.text.primary};
+  margin-bottom: 4px;
+`;
+
+export const RulesSubtitle = styled.Text`
+  font-family: Manrope_600SemiBold;
+  font-size: 12px;
+  color: ${({ theme }) => theme.colors.accent.green};
+  margin-bottom: 18px;
+`;
+
+export const RulesSection = styled.Text`
+  font-family: Manrope_700Bold;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: ${({ theme }) => theme.colors.text.secondary};
+  text-transform: uppercase;
+  margin-top: 14px;
+  margin-bottom: 8px;
+`;
+
+export const RulesRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+`;
+
+export const RulesDot = styled.View<{ color: string }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background-color: ${({ color }) => color};
+`;
+
+export const RulesText = styled.Text`
+  font-family: Manrope_400Regular;
+  font-size: 13px;
+  color: ${({ theme }) => theme.colors.text.primary};
+  flex: 1;
+  line-height: 18px;
+`;
+
+export const RulesPts = styled.Text`
+  font-family: Manrope_700Bold;
+  font-size: 13px;
+  color: ${({ theme }) => theme.colors.accent.gold};
+`;
+
+export const RulesCloseBtn = styled.TouchableOpacity`
+  margin-top: 20px;
+  background-color: ${({ theme }) => theme.colors.accent.green};
+  border-radius: ${({ theme }) => theme.borderRadius.sm}px;
+  padding: 12px 0;
+  align-items: center;
+`;
+
+export const RulesCloseBtnText = styled.Text`
+  font-family: Manrope_700Bold;
+  font-size: 14px;
+  color: #fff;
+`;

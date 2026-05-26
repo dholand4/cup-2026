@@ -1,4 +1,5 @@
 const createExpoWebpackConfigAsync = require('@expo/webpack-config');
+const CopyPlugin = require('copy-webpack-plugin');
 const path = require('path');
 const fs   = require('fs');
 
@@ -58,8 +59,14 @@ module.exports = async function (env, argv) {
     buffer: false,
   };
 
-  // Inject manifest fix plugin
-  config.plugins = [...(config.plugins || []), new PwaManifestFixPlugin()];
+  // Copy push service worker to build output
+  const CopyWebpackPlugin = (() => { try { return require('copy-webpack-plugin'); } catch { return null; } })();
+  const swPlugin = CopyWebpackPlugin
+    ? new CopyWebpackPlugin({ patterns: [{ from: path.resolve('./web/push-sw.js'), to: 'push-sw.js' }] })
+    : null;
+
+  // Inject manifest fix plugin + SW copy
+  config.plugins = [...(config.plugins || []), new PwaManifestFixPlugin(), ...(swPlugin ? [swPlugin] : [])];
 
   return config;
 };
