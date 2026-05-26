@@ -31,8 +31,6 @@ function isInStandaloneMode(): boolean {
   );
 }
 
-const DISMISSED_KEY = 'pwa_install_dismissed';
-
 export function PwaInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showAndroid, setShowAndroid]       = useState(false);
@@ -41,7 +39,6 @@ export function PwaInstallBanner() {
   useEffect(() => {
     if (!isWeb) return;
     if (isInStandaloneMode()) return;
-    if (sessionStorage.getItem(DISMISSED_KEY)) return;
 
     if (isIOS()) {
       setShowIOS(true);
@@ -66,8 +63,8 @@ export function PwaInstallBanner() {
     setDeferredPrompt(null);
   };
 
+  // Fecha só na sessão atual — volta a aparecer no próximo refresh
   const handleDismiss = () => {
-    sessionStorage.setItem(DISMISSED_KEY, '1');
     setShowAndroid(false);
     setShowIOS(false);
   };
