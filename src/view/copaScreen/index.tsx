@@ -179,17 +179,10 @@ function ArtilheirosTab() {
 // ── ChaveamentoTab ─────────────────────────────────────────────────────
 
 const KNOCKOUT_STAGES = [
-<<<<<<< HEAD
   { key: 'ROUND_OF_32',    label: '16 Avos de Final' },
   { key: 'ROUND_OF_16',    label: 'Oitavas de Final' },
   { key: 'QUARTER_FINALS', label: 'Quartas de Final' },
   { key: 'SEMI_FINALS',    label: 'Semifinais'       },
-=======
-  { key: 'ROUND_OF_32',    label: '16avos de Final',  count: 16 },
-  { key: 'ROUND_OF_16',    label: 'Oitavas de Final', count: 8 },
-  { key: 'QUARTER_FINALS', label: 'Quartas de Final', count: 4 },
-  { key: 'SEMI_FINALS',    label: 'Semifinais',       count: 2 },
->>>>>>> c24eb18e45097c9360989fc971b985c26b07314c
 ] as const;
 
 // Chaveamento oficial Copa 2026 (fonte: FIFA/Wikipedia)
