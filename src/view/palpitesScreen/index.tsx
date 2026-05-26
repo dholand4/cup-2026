@@ -59,8 +59,8 @@ function getGroupLabel(match: IMatch): string {
 }
 
 const RESULT_LABEL: Record<string, string> = {
-  exact:  '✅ Placar exato · +3pts',
-  winner: '🟡 Vencedor certo · +1pt',
+  exact:  '✅ Placar exato · +10pts',
+  winner: '🟡 Vencedor certo · +7pts',
   wrong:  '❌ Errou · +0pts',
 };
 
@@ -76,7 +76,11 @@ function PalpiteCardItem({ match, palpite, onSave }: IPalpiteCardProps) {
   const { homeTeam, awayTeam, status, score, utcDate } = match;
   const isFinal = status === 'FINISHED';
   const isLive  = status === 'IN_PLAY' || status === 'PAUSED';
-  const locked  = isFinal || isLive || !!palpite; // lock once saved
+
+  const minutesUntil = (new Date(utcDate).getTime() - Date.now()) / 60000;
+  const lockedByTime = minutesUntil <= 10 && !isFinal && !isLive;
+
+  const locked = isFinal || isLive || !!palpite || lockedByTime;
 
   const result = palpite && (isFinal || isLive)
     ? getPalpiteResult(palpite, score.fullTime.home, score.fullTime.away, status)
@@ -179,6 +183,14 @@ function PalpiteCardItem({ match, palpite, onSave }: IPalpiteCardProps) {
           <LockedText>Palpite confirmado — não pode ser alterado</LockedText>
         </LockedRow>
       )}
+
+      {/* Locked by 10-min deadline (no palpite) */}
+      {lockedByTime && !palpite && (
+        <LockedRow>
+          <Ionicons name="lock-closed" size={12} color={theme.colors.text.secondary} />
+          <LockedText>Encerrado para palpites (menos de 10 min)</LockedText>
+        </LockedRow>
+      )}
     </PalpiteCard>
   );
 }
@@ -190,21 +202,27 @@ function PalpiteCardItem({ match, palpite, onSave }: IPalpiteCardProps) {
 // Final    = times que disputaram a final
 // Champion = vencedor da final
 
-function buildActualBracket(allMatches: IMatch[]): ActualBracket {
+function buildActualBracket(knockoutMatches: IMatch[]): ActualBracket {
   const actual: ActualBracket = {};
 
-  // ── Quarters: times que disputaram as quartas de final (Copa real) ───
-  // A Copa 2026 tem: ROUND_OF_32 → ROUND_OF_16 → QUARTER_FINALS → SEMI_FINALS → FINAL
-  const quarterMatches = allMatches.filter(
-    m => m.stage === 'QUARTER_FINALS' && m.homeTeam.tla !== 'TBD',
-  );
-  quarterMatches.forEach(m => {
-    actual[`quarters_${m.homeTeam.tla}`] = true;
-    actual[`quarters_${m.awayTeam.tla}`] = true;
-  });
+  // ── Oitavas: times que disputaram as oitavas de final (ROUND_OF_16) ──
+  knockoutMatches
+    .filter(m => m.stage === 'ROUND_OF_16' && m.homeTeam.tla !== 'TBD')
+    .forEach(m => {
+      actual[`oitavas_${m.homeTeam.tla}`] = true;
+      actual[`oitavas_${m.awayTeam.tla}`] = true;
+    });
+
+  // ── Quarters: times que disputaram as quartas de final ───────────────
+  knockoutMatches
+    .filter(m => m.stage === 'QUARTER_FINALS' && m.homeTeam.tla !== 'TBD')
+    .forEach(m => {
+      actual[`quarters_${m.homeTeam.tla}`] = true;
+      actual[`quarters_${m.awayTeam.tla}`] = true;
+    });
 
   // ── Semis: times que disputaram as semifinais ─────────────────────────
-  allMatches
+  knockoutMatches
     .filter(m => m.stage === 'SEMI_FINALS' && m.homeTeam.tla !== 'TBD')
     .forEach(m => {
       actual[`semis_${m.homeTeam.tla}`] = true;
@@ -212,7 +230,7 @@ function buildActualBracket(allMatches: IMatch[]): ActualBracket {
     });
 
   // ── Final: times que disputaram a final + campeão ────────────────────
-  allMatches
+  knockoutMatches
     .filter(m => m.stage === 'FINAL' && m.homeTeam.tla !== 'TBD')
     .forEach(m => {
       actual[`final_${m.homeTeam.tla}`] = true;
@@ -278,7 +296,7 @@ function BracketTab({ bracket, locked, actual, onSave, onRemove }: IBracketTabPr
         {locked && (
           <LockedRow style={{ marginBottom: 12 }}>
             <Ionicons name="lock-closed" size={13} color={theme.colors.text.secondary} />
-            <LockedText>Fase de grupos encerrada — palpites da Fase Final bloqueados</LockedText>
+            <LockedText>Fase eliminatória iniciada — palpites da Fase Final bloqueados</LockedText>
           </LockedRow>
         )}
 
@@ -286,7 +304,7 @@ function BracketTab({ bracket, locked, actual, onSave, onRemove }: IBracketTabPr
           <LockedRow style={{ marginBottom: 12, backgroundColor: 'rgba(0,165,80,0.08)', borderRadius: 8 }}>
             <Ionicons name="information-circle-outline" size={13} color={theme.colors.accent.green} />
             <LockedText style={{ color: theme.colors.accent.green }}>
-              Preencha até o fim da fase de grupos
+              Preencha antes da fase eliminatória começar
             </LockedText>
           </LockedRow>
         )}
@@ -592,7 +610,7 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
 // ── PalpitesScreen ─────────────────────────────────────────────────────
 
 export function PalpitesScreen() {
-  const { live, today, upcoming, recent, loading, refresh } = useMatchesContext();
+  const { live, today, upcoming, recent, knockout, loading, refresh } = useMatchesContext();
   const { user, isGuest, signOut } = useAuth();
   const { palpites, bracket, savePalpite, saveBracket, removeBracket } = usePalpites(user?.id ?? null);
   const [refreshing, setRefreshing] = useState(false);
@@ -634,18 +652,18 @@ export function PalpitesScreen() {
   const exact        = finished.filter(m => getPalpiteResult(palpites[m.id], m.score.fullTime.home, m.score.fullTime.away, m.status) === 'exact').length;
   const winner       = finished.filter(m => getPalpiteResult(palpites[m.id], m.score.fullTime.home, m.score.fullTime.away, m.status) === 'winner').length;
   const wrong        = finished.filter(m => getPalpiteResult(palpites[m.id], m.score.fullTime.home, m.score.fullTime.away, m.status) === 'wrong').length;
-  const gamePoints   = exact * 3 + winner * 1;
+  const gamePoints   = exact * 10 + winner * 7;
 
-  // Bracket locks only when a knockout stage match actually starts (not merely scheduled)
+  // Bracket locks when the first ROUND_OF_32 match actually starts
   const bracketLocked = useMemo(() =>
-    allMatches.some(m =>
-      NON_GROUP_STAGES.includes(m.stage ?? '') &&
+    knockout.some(m =>
+      m.stage === 'ROUND_OF_32' &&
       ['IN_PLAY', 'PAUSED', 'FINISHED'].includes(m.status),
     ),
-  [allMatches]);
+  [knockout]);
 
-  // Stats — bracket calculado dos resultados reais dos matches
-  const actualBracket = useMemo(() => buildActualBracket(allMatches), [allMatches]);
+  // Stats — bracket calculado dos resultados reais dos knockout matches
+  const actualBracket = useMemo(() => buildActualBracket(knockout), [knockout]);
   const bracketPoints = getBracketPoints(bracket, actualBracket);
   const points        = gamePoints + bracketPoints;
 

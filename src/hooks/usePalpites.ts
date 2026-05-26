@@ -32,7 +32,7 @@ export function getPalpiteResult(
 
 // ── Bracket predictions ───────────────────────────────────────────────
 
-export type BracketRound = 'quarters' | 'semis' | 'final' | 'champion';
+export type BracketRound = 'oitavas' | 'quarters' | 'semis' | 'final' | 'champion';
 
 export interface IBracketSlot {
   round: BracketRound;
@@ -42,10 +42,11 @@ export interface IBracketSlot {
 }
 
 export const BRACKET_ROUNDS: { key: BracketRound; label: string; slots: number; pts: number }[] = [
-  { key: 'quarters',  label: 'Quartas de Final', slots: 8, pts: 2  },
-  { key: 'semis',     label: 'Semifinais',        slots: 4, pts: 3  },
-  { key: 'final',     label: 'Final',             slots: 2, pts: 5  },
-  { key: 'champion',  label: 'Campeão',           slots: 1, pts: 10 },
+  { key: 'oitavas',  label: 'Oitavas de Final', slots: 16, pts: 5  },
+  { key: 'quarters', label: 'Quartas de Final',  slots: 8,  pts: 10 },
+  { key: 'semis',    label: 'Semifinais',         slots: 4,  pts: 15 },
+  { key: 'final',    label: 'Final',              slots: 2,  pts: 20 },
+  { key: 'champion', label: 'Campeão',            slots: 1,  pts: 50 },
 ];
 
 export type ActualBracket = Record<string, boolean>;

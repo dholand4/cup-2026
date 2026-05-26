@@ -179,13 +179,99 @@ function ArtilheirosTab() {
 // ── ChaveamentoTab ─────────────────────────────────────────────────────
 
 const KNOCKOUT_STAGES = [
-  { key: 'ROUND_OF_16',    label: 'Oitavas de Final', count: 8 },
-  { key: 'QUARTER_FINALS', label: 'Quartas de Final', count: 4 },
-  { key: 'SEMI_FINALS',    label: 'Semifinais',       count: 2 },
+  { key: 'ROUND_OF_32',    label: '16 Avos de Final' },
+  { key: 'ROUND_OF_16',    label: 'Oitavas de Final' },
+  { key: 'QUARTER_FINALS', label: 'Quartas de Final' },
+  { key: 'SEMI_FINALS',    label: 'Semifinais'       },
 ] as const;
+
+// Chaveamento oficial Copa 2026 (fonte: FIFA/Wikipedia)
+// Fase de grupos: jogos 1-72 (12 grupos × 6 partidas)
+// Eliminatórios: 73-88 (16 avos) → 89-96 (oitavas) → 97-100 (quartas) → 101-102 (semi) → 104 (final)
+//
+// Lógica do árbol (quem alimenta quem):
+// R32 Chave A: J73,74,75,77,81,82,83,84 → R16 Chave A: J89,90,93,94 → QF: J97,98 → SF: J101
+// R32 Chave B: J76,78,79,80,85,86,87,88 → R16 Chave B: J91,92,95,96 → QF: J99,100 → SF: J102
+const STAGE_TEMPLATES: Record<string, Array<{ match: number; home: string; away: string }>> = {
+  // 16 Avos (jogos 73-88) — confrontos oficiais da Copa 2026
+  // Chave A = coluna esquerda (J73-J80) → oitavas J89-J92 → quartas J97, J99
+  // Chave B = coluna direita  (J81-J88) → oitavas J93-J96 → quartas J98, J100
+  // Dentro de cada chave, pares adjacentes se encontram na mesma oitava
+  ROUND_OF_32: [
+    // ── Chave A (J73-J80): pares → J90, J89, J91, J92 ──
+    { match: 73, home: '2º Grupo A', away: '2º Grupo B'  }, // par com J75 → J90
+    { match: 75, home: '1º Grupo F', away: '2º Grupo C'  }, // par com J73 → J90
+    { match: 74, home: '1º Grupo E', away: '3º ABCDF'    }, // par com J77 → J89
+    { match: 77, home: '1º Grupo I', away: '3º CDFGH'    }, // par com J74 → J89
+    { match: 76, home: '1º Grupo C', away: '2º Grupo F'  }, // par com J78 → J91
+    { match: 78, home: '2º Grupo E', away: '2º Grupo I'  }, // par com J76 → J91
+    { match: 79, home: '1º Grupo A', away: '3º CEFHI'    }, // par com J80 → J92
+    { match: 80, home: '1º Grupo L', away: '3º EHIJK'    }, // par com J79 → J92
+    // ── Chave B (J81-J88): pares → J93, J94, J95, J96 ──
+    { match: 83, home: '2º Grupo K', away: '2º Grupo L'  }, // par com J84 → J93
+    { match: 84, home: '1º Grupo H', away: '2º Grupo J'  }, // par com J83 → J93
+    { match: 81, home: '1º Grupo D', away: '3º BEFIJ'    }, // par com J82 → J94
+    { match: 82, home: '1º Grupo G', away: '3º AEHIJ'    }, // par com J81 → J94
+    { match: 86, home: '1º Grupo J', away: '2º Grupo H'  }, // par com J88 → J95
+    { match: 88, home: '2º Grupo D', away: '2º Grupo G'  }, // par com J86 → J95
+    { match: 85, home: '1º Grupo B', away: '3º EFGIJ'    }, // par com J87 → J96
+    { match: 87, home: '1º Grupo K', away: '3º DEIJL'    }, // par com J85 → J96
+  ],
+  // Oitavas (jogos 89-96)
+  // Chave A = J89-J92 (vencedores da coluna esquerda dos 16-avos)
+  // Chave B = J93-J96 (vencedores da coluna direita dos 16-avos)
+  ROUND_OF_16: [
+    // ── Chave A: pares → J97, J99 ──
+    { match: 90, home: 'Vitória 73', away: 'Vitória 75'  }, // par com J89 → J97
+    { match: 89, home: 'Vitória 74', away: 'Vitória 77'  }, // par com J90 → J97
+    { match: 91, home: 'Vitória 76', away: 'Vitória 78'  }, // par com J92 → J99
+    { match: 92, home: 'Vitória 79', away: 'Vitória 80'  }, // par com J91 → J99
+    // ── Chave B: pares → J98, J100 ──
+    { match: 93, home: 'Vitória 83', away: 'Vitória 84'  }, // par com J94 → J98
+    { match: 94, home: 'Vitória 81', away: 'Vitória 82'  }, // par com J93 → J98
+    { match: 95, home: 'Vitória 86', away: 'Vitória 88'  }, // par com J96 → J100
+    { match: 96, home: 'Vitória 85', away: 'Vitória 87'  }, // par com J95 → J100
+  ],
+  // Quartas (jogos 97-100)
+  // Chave A = J97 + J99 (ambos da Chave A das oitavas)
+  // Chave B = J98 + J100 (ambos da Chave B das oitavas)
+  QUARTER_FINALS: [
+    // ── Chave A ──
+    { match: 97,  home: 'Vitória 89', away: 'Vitória 90'  },
+    { match: 99,  home: 'Vitória 91', away: 'Vitória 92'  },
+    // ── Chave B ──
+    { match: 98,  home: 'Vitória 93', away: 'Vitória 94'  },
+    { match: 100, home: 'Vitória 95', away: 'Vitória 96'  },
+  ],
+  // Semifinais (jogos 101-102): cruzamento entre Chave A e Chave B
+  SEMI_FINALS: [
+    { match: 101, home: 'Vitória 97', away: 'Vitória 98'  },
+    { match: 102, home: 'Vitória 99', away: 'Vitória 100' },
+  ],
+};
 
 function isTbd(tla: string | undefined): boolean {
   return !tla || tla === 'TBD' || tla === '' || tla === '?';
+}
+
+function stageHasRealTeams(matches: IMatch[]): boolean {
+  return matches.some(m => !isTbd(m.homeTeam.tla) || !isTbd(m.awayTeam.tla));
+}
+
+function BracketTemplateItem({ match, home, away }: { match: number; home: string; away: string }) {
+  return (
+    <BracketMatchBox>
+      <BracketMatchStatus>Jogo {match}</BracketMatchStatus>
+      <BracketMatchDivider />
+      <BracketTeamLine tbd={true}>
+        <BracketTLA tbd={true}>{home}</BracketTLA>
+      </BracketTeamLine>
+      <BracketMatchDivider />
+      <BracketTeamLine tbd={true}>
+        <BracketTLA tbd={true}>{away}</BracketTLA>
+      </BracketTeamLine>
+    </BracketMatchBox>
+  );
 }
 
 function BracketMatchItem({ match }: { match: IMatch }) {
@@ -292,15 +378,13 @@ function BracketFinalItem({ match }: { match: IMatch }) {
 }
 
 function ChaveamentoTab() {
-  const { live, today, upcoming, recent } = useMatchesContext();
+  const { knockout } = useMatchesContext();
 
   const allMatches = useMemo(() => {
-    const map = new Map<number, IMatch>();
-    [...recent, ...live, ...today, ...upcoming].forEach(m => map.set(m.id, m));
-    return [...map.values()].sort(
+    return [...knockout].sort(
       (a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime(),
     );
-  }, [recent, live, today, upcoming]);
+  }, [knockout]);
 
   const byStage = useMemo(() => {
     const result: Record<string, IMatch[]> = {};
@@ -314,25 +398,16 @@ function ChaveamentoTab() {
     return result;
   }, [allMatches]);
 
-  const finalMatch  = byStage['FINAL']?.[0] ?? null;
-  const hasKnockout = Object.keys(byStage).length > 0;
-
-  if (!hasKnockout) {
-    return (
-      <View style={{ flex: 1, padding: 20 }}>
-        <EmptyStateGlobal
-          message={'Chaveamento disponível\napós a fase de grupos\n\n📅 Copa 2026 · Jul 2026'}
-          icon="git-branch-outline"
-        />
-      </View>
-    );
-  }
+  const finalMatch = byStage['FINAL']?.[0] ?? null;
+  const finalHasRealTeams = finalMatch ? stageHasRealTeams([finalMatch]) : false;
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       {KNOCKOUT_STAGES.map(stage => {
-        const matches = byStage[stage.key] ?? [];
-        const hasPending = matches.length === 0;
+        const matches  = byStage[stage.key] ?? [];
+        const hasReal  = matches.length > 0 && stageHasRealTeams(matches);
+        const template = STAGE_TEMPLATES[stage.key] ?? [];
+        const half     = Math.ceil(template.length / 2);
 
         const mid   = Math.ceil(matches.length / 2);
         const left  = matches.slice(0, mid);
@@ -342,26 +417,37 @@ function ChaveamentoTab() {
           <BracketRoundSection key={stage.key}>
             <BracketRoundHeader>
               <BracketRoundLabel>{stage.label}</BracketRoundLabel>
-              {!hasPending && (
+              {hasReal ? (
                 <BracketRoundCount>{matches.length} jogos</BracketRoundCount>
+              ) : (
+                <BracketRoundCount>Projeção</BracketRoundCount>
               )}
             </BracketRoundHeader>
 
-            {hasPending ? (
-              <BracketPendingBox>
-                <Ionicons name="time-outline" size={14} color={theme.colors.text.muted} />
-                <BracketPendingText>Aguardando fase anterior</BracketPendingText>
-              </BracketPendingBox>
-            ) : (
+            {hasReal ? (
               <BracketSidesRow>
                 <BracketSide>
                   <BracketSideLabel>◀ Chave A</BracketSideLabel>
                   {left.map(m => <BracketMatchItem key={m.id} match={m} />)}
                 </BracketSide>
-
                 <BracketSide>
                   <BracketSideLabel style={{ textAlign: 'right' }}>Chave B ▶</BracketSideLabel>
                   {right.map(m => <BracketMatchItem key={m.id} match={m} />)}
+                </BracketSide>
+              </BracketSidesRow>
+            ) : (
+              <BracketSidesRow>
+                <BracketSide>
+                  <BracketSideLabel>◀ Chave A</BracketSideLabel>
+                  {template.slice(0, half).map(slot => (
+                    <BracketTemplateItem key={slot.match} match={slot.match} home={slot.home} away={slot.away} />
+                  ))}
+                </BracketSide>
+                <BracketSide>
+                  <BracketSideLabel style={{ textAlign: 'right' }}>Chave B ▶</BracketSideLabel>
+                  {template.slice(half).map(slot => (
+                    <BracketTemplateItem key={slot.match} match={slot.match} home={slot.home} away={slot.away} />
+                  ))}
                 </BracketSide>
               </BracketSidesRow>
             )}
@@ -369,12 +455,24 @@ function ChaveamentoTab() {
         );
       })}
 
-      {finalMatch && (
-        <BracketFinalSection>
-          <BracketFinalLabel>🏆  FINAL  🏆</BracketFinalLabel>
+      <BracketFinalSection>
+        <BracketFinalLabel>🏆  FINAL  🏆</BracketFinalLabel>
+        {finalMatch && finalHasRealTeams ? (
           <BracketFinalItem match={finalMatch} />
-        </BracketFinalSection>
-      )}
+        ) : (
+          <BracketFinalCard>
+            <BracketMatchStatus>Jogo 104</BracketMatchStatus>
+            <BracketMatchDivider />
+            <BracketFinalTeamLine tbd={true}>
+              <BracketFinalTLA tbd={true}>Vitória 101</BracketFinalTLA>
+            </BracketFinalTeamLine>
+            <BracketMatchDivider />
+            <BracketFinalTeamLine tbd={true}>
+              <BracketFinalTLA tbd={true}>Vitória 102</BracketFinalTLA>
+            </BracketFinalTeamLine>
+          </BracketFinalCard>
+        )}
+      </BracketFinalSection>
 
       <BottomSpacer />
     </ScrollView>

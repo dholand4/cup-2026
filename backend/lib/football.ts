@@ -30,11 +30,16 @@ async function fetchStandings(): Promise<any[]> {
   return data.standings ?? [];
 }
 
+const KNOCKOUT_STAGES = new Set([
+  'ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL',
+]);
+
 export interface MatchesPayload {
   live:     any[];
   today:    any[];
   upcoming: any[];
   recent:   any[];
+  knockout: any[];
   hasLive:  boolean;
 }
 
@@ -48,8 +53,9 @@ export async function getAllMatches(): Promise<MatchesPayload> {
   const today    = allMatches.filter((m: any) => m.utcDate.startsWith(todayStr));
   const upcoming = allMatches.filter((m: any) => ['SCHEDULED', 'TIMED'].includes(m.status) && m.utcDate > todayStr);
   const recent   = allMatches.filter((m: any) => m.status === 'FINISHED' && m.utcDate.split('T')[0] >= weekAgo);
+  const knockout = allMatches.filter((m: any) => KNOCKOUT_STAGES.has(m.stage));
 
-  return { live, today, upcoming, recent, hasLive: live.length > 0 };
+  return { live, today, upcoming, recent, knockout, hasLive: live.length > 0 };
 }
 
 export { fetchStandings };

@@ -11,13 +11,14 @@ interface IMatchesState {
   today:    IMatch[];
   upcoming: IMatch[];
   recent:   IMatch[];
+  knockout: IMatch[];
   loading:  boolean;
   error:    string | null;
 }
 
 export function useMatches() {
   const [state, setState] = useState<IMatchesState>({
-    live: [], today: [], upcoming: [], recent: [],
+    live: [], today: [], upcoming: [], recent: [], knockout: [],
     loading: true, error: null,
   });
 
@@ -29,13 +30,14 @@ export function useMatches() {
       setState(prev => ({ ...prev, loading: true, error: null }));
     }
     try {
-      const { live, today, upcoming, recent, hasLive } = await getAllMatches();
+      const { live, today, upcoming, recent, knockout, hasLive } = await getAllMatches();
 
       setState({
         live,
         today,
         upcoming,
         recent,
+        knockout,
         loading: false,
         error:   null,
       });

@@ -30,6 +30,7 @@ export async function getAllMatches(): Promise<AllMatchesPayload> {
     today:    (data.today    ?? []).map(translateMatch),
     upcoming: (data.upcoming ?? []).map(translateMatch),
     recent:   (data.recent   ?? []).map(translateMatch),
+    knockout: (data.knockout ?? []).map(translateMatch),
     hasLive:  data.hasLive ?? false,
   };
 }

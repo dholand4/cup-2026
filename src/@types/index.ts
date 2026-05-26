@@ -74,6 +74,7 @@ export interface AllMatchesPayload {
   today:    IMatch[];
   upcoming: IMatch[];
   recent:   IMatch[];
+  knockout: IMatch[];
   hasLive:  boolean;
 }
 
