@@ -27,7 +27,11 @@
       "softwareKeyboardLayoutMode": "pan",
       "compileSdkVersion": 35,
       "targetSdkVersion": 35,
-      "minSdkVersion": 24
+      "minSdkVersion": 24,
+      "navigationBar": {
+        "backgroundColor": "#0A0E1A",
+        "barStyle": "light-content"
+      }
     },
     "web": {
       "bundler": "webpack",

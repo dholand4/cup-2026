@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import * as NavigationBar from 'expo-navigation-bar';
 
 // Incrementar esse número força limpeza do storage em todos os dispositivos
 const STORAGE_VERSION = '2';
@@ -79,6 +80,12 @@ export default function App() {
   const [storageReady, setStorageReady] = useState(false);
 
   useEffect(() => {
+    // Cor da barra de navegação inferior no Android
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync(theme.colors.background.primary);
+      NavigationBar.setButtonStyleAsync('light');
+    }
+
     AsyncStorage.getItem(VERSION_KEY).then(async v => {
       if (v !== STORAGE_VERSION) {
         await AsyncStorage.clear();
@@ -113,7 +120,7 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ backgroundColor: theme.colors.background.primary }}>
       <ThemeProvider>
         <AuthProvider>
           <FavoritesProvider>
@@ -121,7 +128,7 @@ export default function App() {
               <MatchesProvider>
                 <StatusBar style="light" backgroundColor={theme.colors.background.primary} />
                 <TooltipProvider>
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, backgroundColor: theme.colors.background.primary }}>
                     <RootNavigator />
                     <PwaInstallBanner />
                   </View>
