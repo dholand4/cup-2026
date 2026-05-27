@@ -9,7 +9,7 @@ import { IMatch } from '../../@types';
 import { useMatchesContext } from '../../providers/MatchesProvider';
 import {
   usePalpites, getPalpiteResult, IPalpite,
-  BRACKET_ROUNDS, BracketRound, getBracketPoints,
+  BRACKET_ROUNDS, BracketRound, getBracketPoints, PalpiteTipo,
 } from '../../hooks/usePalpites';
 import { ActualBracket } from '../../hooks/usePalpites';
 import { CrestGlobal } from '../../components/crestGlobal';
@@ -50,6 +50,8 @@ import {
   RulesSection, RulesRow, RulesDot, RulesText, RulesPts,
   RulesCloseBtn, RulesCloseBtnText,
   HeaderRow,
+  ModeSwitcher, ModeBtn, ModeBtnText,
+  OutcomeRow, OutcomeBtn, OutcomeBtnText,
 } from './style';
 
 type ActiveTab = 'jogos' | 'bracket' | 'ranking';
@@ -66,16 +68,25 @@ function getGroupLabel(match: IMatch): string {
 
 const RESULT_LABEL: Record<string, string> = {
   exact:  '✅ Placar exato · +10pts',
-  winner: '🟡 Vencedor certo · +7pts',
+  winner: '🟡 Resultado certo · +7pts',
   wrong:  '❌ Errou · +0pts',
 };
+
 
 // ── PalpiteCardItem ────────────────────────────────────────────────────
 
 interface IPalpiteCardProps {
   match: IMatch;
   palpite?: IPalpite;
-  onSave: (matchId: number, home: number, away: number) => void;
+  onSave: (matchId: number, home: number, away: number, tipo: PalpiteTipo) => void;
+}
+
+function getPalpiteDisplay(p: IPalpite): string {
+  if (p.tipo === 'outcome') {
+    const out = p.homeScore > p.awayScore ? 'Casa' : p.awayScore > p.homeScore ? 'Fora' : 'Empate';
+    return `palpite: ${out}`;
+  }
+  return `palpite: ${p.homeScore} × ${p.awayScore}`;
 }
 
 function PalpiteCardItem({ match, palpite, onSave }: IPalpiteCardProps) {
@@ -92,16 +103,27 @@ function PalpiteCardItem({ match, palpite, onSave }: IPalpiteCardProps) {
     ? getPalpiteResult(palpite, score.fullTime.home, score.fullTime.away, status)
     : undefined;
 
-  const [home, setHome] = useState('');
-  const [away, setAway] = useState('');
+  // Modo de entrada: 'outcome' (W/D/L) ou 'score' (placar exato)
+  const [mode, setMode]       = useState<PalpiteTipo>('outcome');
+  const [outcome, setOutcome] = useState<'home' | 'draw' | 'away' | null>(null);
+  const [home, setHome]       = useState('');
+  const [away, setAway]       = useState('');
 
-  const canSave = home !== '' && away !== '' && !palpite;
+  const canSave = !palpite && (
+    mode === 'outcome' ? outcome !== null : (home !== '' && away !== '')
+  );
 
   const handleSave = () => {
-    const h = parseInt(home, 10);
-    const a = parseInt(away, 10);
-    if (isNaN(h) || isNaN(a)) return;
-    onSave(match.id, h, a);
+    if (mode === 'outcome' && outcome) {
+      const h = outcome === 'home' ? 1 : 0;
+      const a = outcome === 'away' ? 1 : 0;
+      onSave(match.id, h, a, 'outcome');
+    } else {
+      const h = parseInt(home, 10);
+      const a = parseInt(away, 10);
+      if (isNaN(h) || isNaN(a)) return;
+      onSave(match.id, h, a, 'score');
+    }
   };
 
   return (
@@ -132,35 +154,7 @@ function PalpiteCardItem({ match, palpite, onSave }: IPalpiteCardProps) {
 
           {/* Palpite display once locked */}
           {palpite && (
-            <PalpiteLabel>
-              palpite: {palpite.homeScore} × {palpite.awayScore}
-            </PalpiteLabel>
-          )}
-
-          {/* Input (only when not locked) */}
-          {!locked && (
-            <>
-              <ScoreInputRow>
-                <ScoreInput
-                  value={home}
-                  onChangeText={v => setHome(v.replace(/[^0-9]/g, '').slice(0, 2))}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="0"
-                  placeholderTextColor={theme.colors.text.muted}
-                />
-                <InputSep>×</InputSep>
-                <ScoreInput
-                  value={away}
-                  onChangeText={v => setAway(v.replace(/[^0-9]/g, '').slice(0, 2))}
-                  keyboardType="number-pad"
-                  maxLength={2}
-                  placeholder="0"
-                  placeholderTextColor={theme.colors.text.muted}
-                />
-              </ScoreInputRow>
-              <PalpiteLabel>seu palpite</PalpiteLabel>
-            </>
+            <PalpiteLabel>{getPalpiteDisplay(palpite)}</PalpiteLabel>
           )}
 
           {/* No palpite + finished */}
@@ -175,11 +169,66 @@ function PalpiteCardItem({ match, palpite, onSave }: IPalpiteCardProps) {
         </TeamBlock>
       </TeamsRow>
 
-      {/* Save button (only before saving) */}
-      {!locked && canSave && (
-        <SaveButton onPress={handleSave}>
-          <SaveButtonText>Confirmar palpite</SaveButtonText>
-        </SaveButton>
+      {/* Input area (only when not locked) */}
+      {!locked && (
+        <>
+          {/* Mode toggle */}
+          <ModeSwitcher>
+            <ModeBtn active={mode === 'outcome'} onPress={() => { setMode('outcome'); setOutcome(null); }}>
+              <ModeBtnText active={mode === 'outcome'}>Resultado · 7pts</ModeBtnText>
+            </ModeBtn>
+            <ModeBtn active={mode === 'score'} onPress={() => { setMode('score'); setHome(''); setAway(''); }}>
+              <ModeBtnText active={mode === 'score'}>Placar exato · 10pts</ModeBtnText>
+            </ModeBtn>
+          </ModeSwitcher>
+
+          {/* Outcome buttons */}
+          {mode === 'outcome' && (
+            <OutcomeRow>
+              {(['home', 'draw', 'away'] as const).map(opt => (
+                <OutcomeBtn
+                  key={opt}
+                  selected={outcome === opt}
+                  onPress={() => setOutcome(opt)}
+                >
+                  <OutcomeBtnText selected={outcome === opt}>
+                    {opt === 'home' ? homeTeam.tla : opt === 'away' ? awayTeam.tla : 'Empate'}
+                  </OutcomeBtnText>
+                </OutcomeBtn>
+              ))}
+            </OutcomeRow>
+          )}
+
+          {/* Score inputs */}
+          {mode === 'score' && (
+            <ScoreInputRow style={{ justifyContent: 'center', marginTop: 4 }}>
+              <ScoreInput
+                value={home}
+                onChangeText={v => setHome(v.replace(/[^0-9]/g, '').slice(0, 2))}
+                keyboardType="number-pad"
+                maxLength={2}
+                placeholder="0"
+                placeholderTextColor={theme.colors.text.muted}
+              />
+              <InputSep>×</InputSep>
+              <ScoreInput
+                value={away}
+                onChangeText={v => setAway(v.replace(/[^0-9]/g, '').slice(0, 2))}
+                keyboardType="number-pad"
+                maxLength={2}
+                placeholder="0"
+                placeholderTextColor={theme.colors.text.muted}
+              />
+            </ScoreInputRow>
+          )}
+
+          {/* Confirm button */}
+          {canSave && (
+            <SaveButton onPress={handleSave}>
+              <SaveButtonText>Confirmar palpite</SaveButtonText>
+            </SaveButton>
+          )}
+        </>
       )}
 
       {/* Locked indicator (saved future match) */}

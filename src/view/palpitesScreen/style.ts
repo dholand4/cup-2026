@@ -457,6 +457,61 @@ export const BottomSpacer = styled.View`
   height: 180px;
 `;
 
+// ── Outcome / Mode switcher ────────────────────────────────────────────
+
+export const ModeSwitcher = styled.View`
+  flex-direction: row;
+  background-color: ${({ theme }) => theme.colors.background.elevated};
+  border-radius: ${({ theme }) => theme.borderRadius.sm}px;
+  padding: 2px;
+  margin-top: 10px;
+  margin-bottom: 8px;
+`;
+
+export const ModeBtn = styled(TouchableOpacity)<{ active: boolean }>`
+  flex: 1;
+  padding: 5px 0;
+  align-items: center;
+  border-radius: ${({ theme }) => theme.borderRadius.sm}px;
+  background-color: ${({ active, theme }) =>
+    active ? theme.colors.background.card : 'transparent'};
+`;
+
+export const ModeBtnText = styled.Text<{ active: boolean }>`
+  font-family: Manrope_700Bold;
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: ${({ active, theme }) =>
+    active ? theme.colors.text.primary : theme.colors.text.muted};
+`;
+
+export const OutcomeRow = styled.View`
+  flex-direction: row;
+  gap: 5px;
+  margin-bottom: 4px;
+`;
+
+export const OutcomeBtn = styled(TouchableOpacity)<{ selected: boolean }>`
+  flex: 1;
+  padding: 7px 4px;
+  align-items: center;
+  border-radius: ${({ theme }) => theme.borderRadius.sm}px;
+  border-width: 1px;
+  border-color: ${({ selected, theme }) =>
+    selected ? theme.colors.accent.green : theme.colors.border};
+  background-color: ${({ selected }) =>
+    selected ? 'rgba(0,165,80,0.12)' : 'transparent'};
+`;
+
+export const OutcomeBtnText = styled.Text<{ selected: boolean }>`
+  font-family: Manrope_700Bold;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  color: ${({ selected, theme }) =>
+    selected ? theme.colors.accent.green : theme.colors.text.secondary};
+`;
+
 // ── Liga / Ranking ─────────────────────────────────────────────────────
 
 export const NoLigaContainer = styled.View`

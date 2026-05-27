@@ -3,15 +3,22 @@ import { supabase } from '../services/supabaseClient';
 
 // ── Per-match predictions ─────────────────────────────────────────────
 
+export type PalpiteTipo = 'score' | 'outcome';
+
 export interface IPalpite {
   matchId: number;
   homeScore: number;
   awayScore: number;
+  tipo: PalpiteTipo;
 }
 
 type PalpitesMap = Record<number, IPalpite>;
 
 export type PalpiteResult = 'exact' | 'winner' | 'wrong' | 'pending';
+
+function getOutcome(h: number, a: number): 'home' | 'draw' | 'away' {
+  return h > a ? 'home' : a > h ? 'away' : 'draw';
+}
 
 export function getPalpiteResult(
   palpite: IPalpite,
@@ -20,14 +27,18 @@ export function getPalpiteResult(
   status: string,
 ): PalpiteResult {
   if (status !== 'FINISHED' || fullTimeHome === null || fullTimeAway === null) return 'pending';
+
+  const actualOutcome    = getOutcome(fullTimeHome, fullTimeAway);
+  const predictedOutcome = getOutcome(palpite.homeScore, palpite.awayScore);
+
+  if (palpite.tipo === 'outcome') {
+    // Modo Resultado: só compara vitória/empate/derrota → 7pts ou 0pts
+    return predictedOutcome === actualOutcome ? 'winner' : 'wrong';
+  }
+
+  // Modo Placar: exato = 10pts, qualquer outra coisa = 0pts (sem consolação)
   if (palpite.homeScore === fullTimeHome && palpite.awayScore === fullTimeAway) return 'exact';
-  const predictedWinner =
-    palpite.homeScore > palpite.awayScore ? 'home' :
-    palpite.awayScore > palpite.homeScore ? 'away' : 'draw';
-  const actualWinner =
-    fullTimeHome > fullTimeAway ? 'home' :
-    fullTimeAway > fullTimeHome ? 'away' : 'draw';
-  return predictedWinner === actualWinner ? 'winner' : 'wrong';
+  return 'wrong';
 }
 
 // ── Bracket predictions ───────────────────────────────────────────────
@@ -88,8 +99,13 @@ export function usePalpites(userId: string | null) {
     ]).then(([{ data: p }, { data: b }]) => {
       // Palpites por jogo
       const pMap: PalpitesMap = {};
-      (p ?? []).forEach((r: { match_id: number; home_score: number; away_score: number }) => {
-        pMap[r.match_id] = { matchId: r.match_id, homeScore: r.home_score, awayScore: r.away_score };
+      (p ?? []).forEach((r: { match_id: number; home_score: number; away_score: number; tipo?: string }) => {
+        pMap[r.match_id] = {
+          matchId:   r.match_id,
+          homeScore: r.home_score,
+          awayScore: r.away_score,
+          tipo:      (r.tipo as PalpiteTipo) ?? 'score',
+        };
       });
       setPalpites(pMap);
 
@@ -103,13 +119,18 @@ export function usePalpites(userId: string | null) {
     });
   }, [userId]);
 
-  const savePalpite = useCallback(async (matchId: number, homeScore: number, awayScore: number) => {
+  const savePalpite = useCallback(async (
+    matchId: number,
+    homeScore: number,
+    awayScore: number,
+    tipo: PalpiteTipo = 'score',
+  ) => {
     if (!userId) return;
     const { error } = await supabase
       .from('palpites_jogos')
-      .upsert({ usuario_id: userId, match_id: matchId, home_score: homeScore, away_score: awayScore });
+      .upsert({ usuario_id: userId, match_id: matchId, home_score: homeScore, away_score: awayScore, tipo });
     if (!error) {
-      setPalpites(prev => ({ ...prev, [matchId]: { matchId, homeScore, awayScore } }));
+      setPalpites(prev => ({ ...prev, [matchId]: { matchId, homeScore, awayScore, tipo } }));
     }
   }, [userId]);
 
