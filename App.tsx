@@ -28,6 +28,7 @@ import { AuthProvider, useAuth } from './src/providers/AuthProvider';
 import { AppNavigator } from './src/routes';
 import { AuthScreen } from './src/view/authScreen';
 import { PwaInstallBanner } from './src/components/pwaInstallBanner';
+import { NotifPromptBanner } from './src/components/notifPromptBanner';
 import { useWebPush } from './src/hooks/useWebPush';
 import { theme } from './src/constants/theme';
 
@@ -44,7 +45,8 @@ Notifications.setNotificationHandler({
 
 function RootNavigator() {
   const { session, isGuest, loading } = useAuth();
-  useWebPush(session?.user?.id ?? null);
+  const { needsPrompt, requestPermission } = useWebPush(session?.user?.id ?? null);
+  const [notifDismissed, setNotifDismissed] = useState(false);
 
   if (loading) {
     return (
@@ -60,7 +62,17 @@ function RootNavigator() {
   }
 
   if (!session && !isGuest) return <AuthScreen />;
-  return <AppNavigator />;
+  return (
+    <>
+      <AppNavigator />
+      {needsPrompt && !notifDismissed && (
+        <NotifPromptBanner
+          onEnable={requestPermission}
+          onDismiss={() => setNotifDismissed(true)}
+        />
+      )}
+    </>
+  );
 }
 
 export default function App() {
