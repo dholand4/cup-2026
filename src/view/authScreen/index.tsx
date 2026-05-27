@@ -338,10 +338,10 @@ export function AuthScreen() {
           {/* Logo */}
           <Logo>
             <WordmarkRow>
-              <WordmarkCopa>COPA</WordmarkCopa>
-              <WordmarkYear>26</WordmarkYear>
+              <WordmarkCopa>ARENA</WordmarkCopa>
+              <WordmarkYear>SCORE</WordmarkYear>
             </WordmarkRow>
-            <Subtitle>FIFA Copa do Mundo 2026</Subtitle>
+            <Subtitle>Copa do Mundo FIFA 2026</Subtitle>
           </Logo>
 
           {/* Card */}
