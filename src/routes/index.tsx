@@ -104,7 +104,9 @@ const TabLabel = styled.Text<{ active: boolean }>`
 
 export function AppNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      documentTitle={{ formatter: () => 'Arena Score' }}
+    >
       <Tab.Navigator
         tabBar={props => <CustomTabBar {...props} />}
         screenOptions={{ headerShown: false }}
