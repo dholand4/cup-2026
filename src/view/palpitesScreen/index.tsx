@@ -18,6 +18,7 @@ import { isToday, formatDayShort, formatTime } from '../../utils/dateUtils';
 import { ALL_TEAMS, ITeamOption } from '../../utils/allTeams';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../providers/AuthProvider';
+import { AdminNotifModal } from '../../components/adminNotifModal';
 import { useLiga } from '../../hooks/useLiga';
 import { supabase } from '../../services/supabaseClient';
 import {
@@ -668,6 +669,19 @@ export function PalpitesScreen() {
   const [refreshing, setRefreshing]   = useState(false);
   const [activeTab, setActiveTab]     = useState<ActiveTab>('jogos');
   const [showRules, setShowRules]     = useState(false);
+  const [showAdmin, setShowAdmin]     = useState(false);
+  const adminTapCount                 = useRef(0);
+  const adminTapTimer                 = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleWordmarkTap = () => {
+    adminTapCount.current += 1;
+    if (adminTapTimer.current) clearTimeout(adminTapTimer.current);
+    adminTapTimer.current = setTimeout(() => { adminTapCount.current = 0; }, 1500);
+    if (adminTapCount.current >= 5) {
+      adminTapCount.current = 0;
+      setShowAdmin(true);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -776,9 +790,11 @@ export function PalpitesScreen() {
         >
           <Header>
             <HeaderRow>
-              <Wordmark>
-                <WordmarkCopa>PALPITES</WordmarkCopa>
-              </Wordmark>
+              <TouchableOpacity onPress={handleWordmarkTap} activeOpacity={1}>
+                <Wordmark>
+                  <WordmarkCopa>PALPITES</WordmarkCopa>
+                </Wordmark>
+              </TouchableOpacity>
               <InfoBtn onPress={() => setShowRules(true)}>
                 <Ionicons name="information-circle-outline" size={26} color={theme.colors.text.secondary} />
               </InfoBtn>
@@ -786,6 +802,7 @@ export function PalpitesScreen() {
             <SubTitle>Faça suas previsões · Copa 2026</SubTitle>
           </Header>
           <RulesModal visible={showRules} onClose={() => setShowRules(false)} />
+          <AdminNotifModal visible={showAdmin} onClose={() => setShowAdmin(false)} />
 
           <StatsBar>
             <StatChip>
