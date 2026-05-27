@@ -3,6 +3,27 @@ const CopyPlugin = require('copy-webpack-plugin');
 const path = require('path');
 const fs   = require('fs');
 
+// ── Plugin: injeta background no HTML gerado (fix status bar iOS PWA) ──
+class PwaHtmlFixPlugin {
+  apply(compiler) {
+    compiler.hooks.afterEmit.tapAsync('PwaHtmlFixPlugin', (compilation, callback) => {
+      const outDir = compiler.options.output.path;
+      const htmlPath = path.join(outDir, 'index.html');
+      if (!fs.existsSync(htmlPath)) { callback(); return; }
+      try {
+        let html = fs.readFileSync(htmlPath, 'utf8');
+        const style = `<style>html,body,#root{background-color:#0A0E1A;margin:0;padding:0;}</style>`;
+        html = html.replace('</head>', `${style}\n</head>`);
+        fs.writeFileSync(htmlPath, html);
+        console.log('✅ PWA HTML patched: body background injected');
+      } catch (e) {
+        console.error('PwaHtmlFixPlugin error:', e);
+      }
+      callback();
+    });
+  }
+}
+
 // ── Plugin: patches manifest.json after emit ──────────────────────────
 class PwaManifestFixPlugin {
   apply(compiler) {
@@ -18,6 +39,10 @@ class PwaManifestFixPlugin {
         // Remove store links + allow PWA install prompt
         manifest.prefer_related_applications = false;
         manifest.related_applications = [];
+
+        // Garante que a cor da status bar (Android PWA) bate com o fundo do app
+        manifest.theme_color      = '#0A0E1A';
+        manifest.background_color = '#0A0E1A';
 
         // Copy icons to output and register in manifest
         const iconsDir = path.join(outDir, 'pwa-icons');
@@ -68,8 +93,13 @@ module.exports = async function (env, argv) {
       ]})
     : null;
 
-  // Inject manifest fix plugin + SW copy
-  config.plugins = [...(config.plugins || []), new PwaManifestFixPlugin(), ...(swPlugin ? [swPlugin] : [])];
+  // Inject manifest fix plugin + SW copy + HTML fix
+  config.plugins = [
+    ...(config.plugins || []),
+    new PwaManifestFixPlugin(),
+    new PwaHtmlFixPlugin(),
+    ...(swPlugin ? [swPlugin] : []),
+  ];
 
   return config;
 };
