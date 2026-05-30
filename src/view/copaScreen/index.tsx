@@ -3,7 +3,6 @@ import {
   ScrollView, RefreshControl, ActivityIndicator, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useStandings } from '../../hooks/useStandings';
 import { useScorers } from '../../hooks/useScorers';
 import { useMatchesContext } from '../../providers/MatchesProvider';
@@ -13,6 +12,7 @@ import { EmptyStateGlobal } from '../../components/emptyStateGlobal';
 import { SearchBarGlobal } from '../../components/searchBarGlobal';
 import { CrestGlobal } from '../../components/crestGlobal';
 import { theme } from '../../constants/theme';
+import { formatDayShort } from '../../utils/dateUtils';
 import {
   Screen, Header, Wordmark, WordmarkCopa, WordmarkYear, SubTitle,
   TabSwitcher, TabBtn, TabBtnText,
@@ -20,14 +20,10 @@ import {
   ScorerCard, ScorerRank, ScorerInfo, ScorerName, ScorerTeam,
   ScorerStats, ScorerGoals, ScorerAssists,
   BottomSpacer,
-  BracketRoundSection, BracketRoundHeader, BracketRoundLabel, BracketRoundCount,
-  BracketSidesRow, BracketSide, BracketSideLabel,
   BracketMatchBox, BracketTeamLine, BracketTLA, BracketScoreNum,
   BracketMatchDivider, BracketMatchStatus,
-  BracketFinalSection, BracketFinalLabel, BracketFinalCard,
-  BracketFinalTeamLine, BracketFinalTLA, BracketFinalScore,
+  BracketPhasePill, BracketPhasePillText, BracketColHeader,
   ChampionBanner, ChampionLabel, ChampionName,
-  BracketPendingBox, BracketPendingText,
 } from './style';
 
 type ActiveTab = 'grupos' | 'chaveamento' | 'artilheiros';
@@ -178,304 +174,293 @@ function ArtilheirosTab() {
 
 // ── ChaveamentoTab ─────────────────────────────────────────────────────
 
-const KNOCKOUT_STAGES = [
-  { key: 'ROUND_OF_32',    label: '16 Avos de Final' },
-  { key: 'ROUND_OF_16',    label: 'Oitavas de Final' },
-  { key: 'QUARTER_FINALS', label: 'Quartas de Final' },
-  { key: 'SEMI_FINALS',    label: 'Semifinais'       },
-] as const;
+const MATCH_H  = 68;
+const INNER_GAP = 8;
+const OUTER_GAP = 20;
+const CONN_W    = 20;
+const PAIR_H    = MATCH_H * 2 + INNER_GAP;
 
-// Chaveamento oficial Copa 2026 (fonte: FIFA/Wikipedia)
-// Fase de grupos: jogos 1-72 (12 grupos × 6 partidas)
-// Eliminatórios: 73-88 (16 avos) → 89-96 (oitavas) → 97-100 (quartas) → 101-102 (semi) → 104 (final)
-//
-// Lógica do árbol (quem alimenta quem):
-// R32 Chave A: J73,74,75,77,81,82,83,84 → R16 Chave A: J89,90,93,94 → QF: J97,98 → SF: J101
-// R32 Chave B: J76,78,79,80,85,86,87,88 → R16 Chave B: J91,92,95,96 → QF: J99,100 → SF: J102
-const STAGE_TEMPLATES: Record<string, Array<{ match: number; home: string; away: string }>> = {
-  // 16 Avos (jogos 73-88) — confrontos oficiais da Copa 2026
-  // Chave A = coluna esquerda (J73-J80) → oitavas J89-J92 → quartas J97, J99
-  // Chave B = coluna direita  (J81-J88) → oitavas J93-J96 → quartas J98, J100
-  // Dentro de cada chave, pares adjacentes se encontram na mesma oitava
-  ROUND_OF_32: [
-    // ── Chave A (J73-J80): pares → J90, J89, J91, J92 ──
-    { match: 73, home: '2º Grupo A', away: '2º Grupo B'  }, // par com J75 → J90
-    { match: 75, home: '1º Grupo F', away: '2º Grupo C'  }, // par com J73 → J90
-    { match: 74, home: '1º Grupo E', away: '3º ABCDF'    }, // par com J77 → J89
-    { match: 77, home: '1º Grupo I', away: '3º CDFGH'    }, // par com J74 → J89
-    { match: 76, home: '1º Grupo C', away: '2º Grupo F'  }, // par com J78 → J91
-    { match: 78, home: '2º Grupo E', away: '2º Grupo I'  }, // par com J76 → J91
-    { match: 79, home: '1º Grupo A', away: '3º CEFHI'    }, // par com J80 → J92
-    { match: 80, home: '1º Grupo L', away: '3º EHIJK'    }, // par com J79 → J92
-    // ── Chave B (J81-J88): pares → J93, J94, J95, J96 ──
-    { match: 83, home: '2º Grupo K', away: '2º Grupo L'  }, // par com J84 → J93
-    { match: 84, home: '1º Grupo H', away: '2º Grupo J'  }, // par com J83 → J93
-    { match: 81, home: '1º Grupo D', away: '3º BEFIJ'    }, // par com J82 → J94
-    { match: 82, home: '1º Grupo G', away: '3º AEHIJ'    }, // par com J81 → J94
-    { match: 86, home: '1º Grupo J', away: '2º Grupo H'  }, // par com J88 → J95
-    { match: 88, home: '2º Grupo D', away: '2º Grupo G'  }, // par com J86 → J95
-    { match: 85, home: '1º Grupo B', away: '3º EFGIJ'    }, // par com J87 → J96
-    { match: 87, home: '1º Grupo K', away: '3º DEIJL'    }, // par com J85 → J96
-  ],
-  // Oitavas (jogos 89-96)
-  // Chave A = J89-J92 (vencedores da coluna esquerda dos 16-avos)
-  // Chave B = J93-J96 (vencedores da coluna direita dos 16-avos)
-  ROUND_OF_16: [
-    // ── Chave A: pares → J97, J99 ──
-    { match: 90, home: 'Vitória 73', away: 'Vitória 75'  }, // par com J89 → J97
-    { match: 89, home: 'Vitória 74', away: 'Vitória 77'  }, // par com J90 → J97
-    { match: 91, home: 'Vitória 76', away: 'Vitória 78'  }, // par com J92 → J99
-    { match: 92, home: 'Vitória 79', away: 'Vitória 80'  }, // par com J91 → J99
-    // ── Chave B: pares → J98, J100 ──
-    { match: 93, home: 'Vitória 83', away: 'Vitória 84'  }, // par com J94 → J98
-    { match: 94, home: 'Vitória 81', away: 'Vitória 82'  }, // par com J93 → J98
-    { match: 95, home: 'Vitória 86', away: 'Vitória 88'  }, // par com J96 → J100
-    { match: 96, home: 'Vitória 85', away: 'Vitória 87'  }, // par com J95 → J100
-  ],
-  // Quartas (jogos 97-100)
-  // Chave A = J97 + J99 (ambos da Chave A das oitavas)
-  // Chave B = J98 + J100 (ambos da Chave B das oitavas)
-  QUARTER_FINALS: [
-    // ── Chave A ──
-    { match: 97,  home: 'Vitória 89', away: 'Vitória 90'  },
-    { match: 99,  home: 'Vitória 91', away: 'Vitória 92'  },
-    // ── Chave B ──
-    { match: 98,  home: 'Vitória 93', away: 'Vitória 94'  },
-    { match: 100, home: 'Vitória 95', away: 'Vitória 96'  },
-  ],
-  // Semifinais (jogos 101-102): cruzamento entre Chave A e Chave B
-  SEMI_FINALS: [
-    { match: 101, home: 'Vitória 97', away: 'Vitória 98'  },
-    { match: 102, home: 'Vitória 99', away: 'Vitória 100' },
-  ],
+type PhaseDef = {
+  id: string;
+  label: string;
+  leftStage: string;
+  rightStage: string;
+  leftFull: string;
+  rightFull: string;
+};
+
+const BRACKET_PHASES: PhaseDef[] = [
+  { id: 'avos',    label: '16 Avos',  leftStage: 'ROUND_OF_32',    rightStage: 'ROUND_OF_16',    leftFull: '16 Avos de Final', rightFull: 'Oitavas de Final' },
+  { id: 'oitavas', label: 'Oitavas',  leftStage: 'ROUND_OF_16',    rightStage: 'QUARTER_FINALS', leftFull: 'Oitavas de Final', rightFull: 'Quartas de Final' },
+  { id: 'quartas', label: 'Quartas',  leftStage: 'QUARTER_FINALS', rightStage: 'SEMI_FINALS',    leftFull: 'Quartas de Final', rightFull: 'Semifinais'       },
+  { id: 'semis',   label: 'Semis',    leftStage: 'SEMI_FINALS',    rightStage: 'FINAL',          leftFull: 'Semifinais',        rightFull: 'Final'            },
+];
+
+type TplSlot = { match: number; home: string; away: string };
+
+const PHASE_TEMPLATES: Record<string, { left: TplSlot[]; right: TplSlot[] }> = {
+  avos: {
+    left: [
+      { match: 73, home: '2º Gr. A', away: '2º Gr. B' },
+      { match: 75, home: '1º Gr. F', away: '2º Gr. C' },
+      { match: 74, home: '1º Gr. E', away: '3º ABCDF' },
+      { match: 77, home: '1º Gr. I', away: '3º CDFGH' },
+      { match: 76, home: '1º Gr. C', away: '2º Gr. F' },
+      { match: 78, home: '2º Gr. E', away: '2º Gr. I' },
+      { match: 79, home: '1º Gr. A', away: '3º CEFHI' },
+      { match: 80, home: '1º Gr. L', away: '3º EHIJK' },
+      { match: 83, home: '2º Gr. K', away: '2º Gr. L' },
+      { match: 84, home: '1º Gr. H', away: '2º Gr. J' },
+      { match: 81, home: '1º Gr. D', away: '3º BEFIJ' },
+      { match: 82, home: '1º Gr. G', away: '3º AEHIJ' },
+      { match: 86, home: '1º Gr. J', away: '2º Gr. H' },
+      { match: 88, home: '2º Gr. D', away: '2º Gr. G' },
+      { match: 85, home: '1º Gr. B', away: '3º EFGIJ' },
+      { match: 87, home: '1º Gr. K', away: '3º DEIJL' },
+    ],
+    right: [
+      { match: 90, home: 'Vit. J73', away: 'Vit. J75' },
+      { match: 89, home: 'Vit. J74', away: 'Vit. J77' },
+      { match: 91, home: 'Vit. J76', away: 'Vit. J78' },
+      { match: 92, home: 'Vit. J79', away: 'Vit. J80' },
+      { match: 93, home: 'Vit. J83', away: 'Vit. J84' },
+      { match: 94, home: 'Vit. J81', away: 'Vit. J82' },
+      { match: 95, home: 'Vit. J86', away: 'Vit. J88' },
+      { match: 96, home: 'Vit. J85', away: 'Vit. J87' },
+    ],
+  },
+  oitavas: {
+    left: [
+      { match: 90, home: 'Vit. J73', away: 'Vit. J75' },
+      { match: 89, home: 'Vit. J74', away: 'Vit. J77' },
+      { match: 91, home: 'Vit. J76', away: 'Vit. J78' },
+      { match: 92, home: 'Vit. J79', away: 'Vit. J80' },
+      { match: 93, home: 'Vit. J83', away: 'Vit. J84' },
+      { match: 94, home: 'Vit. J81', away: 'Vit. J82' },
+      { match: 95, home: 'Vit. J86', away: 'Vit. J88' },
+      { match: 96, home: 'Vit. J85', away: 'Vit. J87' },
+    ],
+    right: [
+      { match: 97,  home: 'Vit. J90', away: 'Vit. J89' },
+      { match: 99,  home: 'Vit. J91', away: 'Vit. J92' },
+      { match: 98,  home: 'Vit. J93', away: 'Vit. J94' },
+      { match: 100, home: 'Vit. J95', away: 'Vit. J96' },
+    ],
+  },
+  quartas: {
+    left: [
+      { match: 97,  home: 'Vit. J90', away: 'Vit. J89' },
+      { match: 99,  home: 'Vit. J91', away: 'Vit. J92' },
+      { match: 98,  home: 'Vit. J93', away: 'Vit. J94' },
+      { match: 100, home: 'Vit. J95', away: 'Vit. J96' },
+    ],
+    right: [
+      { match: 101, home: 'Vit. J97', away: 'Vit. J99' },
+      { match: 102, home: 'Vit. J98', away: 'Vit. J100' },
+    ],
+  },
+  semis: {
+    left: [
+      { match: 101, home: 'Vit. J97', away: 'Vit. J99' },
+      { match: 102, home: 'Vit. J98', away: 'Vit. J100' },
+    ],
+    right: [
+      { match: 104, home: 'Vit. J101', away: 'Vit. J102' },
+    ],
+  },
 };
 
 function isTbd(tla: string | undefined): boolean {
   return !tla || tla === 'TBD' || tla === '' || tla === '?';
 }
 
-function stageHasRealTeams(matches: IMatch[]): boolean {
-  return matches.some(m => !isTbd(m.homeTeam.tla) || !isTbd(m.awayTeam.tla));
-}
-
-function BracketTemplateItem({ match, home, away }: { match: number; home: string; away: string }) {
-  return (
-    <BracketMatchBox>
-      <BracketMatchStatus>Jogo {match}</BracketMatchStatus>
-      <BracketMatchDivider />
-      <BracketTeamLine tbd={true}>
-        <BracketTLA tbd={true}>{home}</BracketTLA>
-      </BracketTeamLine>
-      <BracketMatchDivider />
-      <BracketTeamLine tbd={true}>
-        <BracketTLA tbd={true}>{away}</BracketTLA>
-      </BracketTeamLine>
-    </BracketMatchBox>
-  );
-}
-
-function BracketMatchItem({ match }: { match: IMatch }) {
+// Compact match card — fixed height for bracket alignment
+function CompactMatchCard({ match }: { match: IMatch }) {
   const finished = match.status === 'FINISHED';
   const live     = match.status === 'IN_PLAY' || match.status === 'PAUSED';
-  const hasScore = match.score.fullTime.home !== null;
-  const hScore   = match.score.fullTime.home ?? 0;
-  const aScore   = match.score.fullTime.away ?? 0;
-  const homeWon  = finished && hScore > aScore;
-  const awayWon  = finished && aScore > hScore;
+  const hScore   = match.score.fullTime.home;
+  const aScore   = match.score.fullTime.away;
+  const homeWon  = finished && hScore !== null && aScore !== null && hScore > aScore;
+  const awayWon  = finished && hScore !== null && aScore !== null && aScore > hScore;
   const homeTbd  = isTbd(match.homeTeam.tla);
   const awayTbd  = isTbd(match.awayTeam.tla);
 
+  const statusLabel = live
+    ? (match.minute != null ? `● ${match.minute}'` : '● AO VIVO')
+    : finished
+    ? (match.score.duration === 'PENALTY_SHOOTOUT' ? 'FT (PEN)' : match.score.duration === 'EXTRA_TIME' ? 'FT (PROR)' : 'FT')
+    : formatDayShort(match.utcDate);
+
   return (
-    <BracketMatchBox>
+    <BracketMatchBox style={{ height: MATCH_H }}>
+      <BracketMatchStatus live={live}>{statusLabel}</BracketMatchStatus>
       <BracketTeamLine winner={homeWon} tbd={homeTbd}>
-        {!homeTbd && (
-          <CrestGlobal tla={match.homeTeam.tla} size={14} teamName={match.homeTeam.name} />
-        )}
-        <BracketTLA winner={homeWon} tbd={homeTbd}>
+        {!homeTbd && <CrestGlobal tla={match.homeTeam.tla} size={13} teamName={match.homeTeam.name} />}
+        <BracketTLA winner={homeWon} tbd={homeTbd} numberOfLines={1}>
           {homeTbd ? '?' : match.homeTeam.tla}
         </BracketTLA>
-        {hasScore && <BracketScoreNum winner={homeWon}>{hScore}</BracketScoreNum>}
+        {hScore !== null && <BracketScoreNum winner={homeWon}>{hScore}</BracketScoreNum>}
       </BracketTeamLine>
-
       <BracketMatchDivider />
-
       <BracketTeamLine winner={awayWon} tbd={awayTbd}>
-        {!awayTbd && (
-          <CrestGlobal tla={match.awayTeam.tla} size={14} teamName={match.awayTeam.name} />
-        )}
-        <BracketTLA winner={awayWon} tbd={awayTbd}>
+        {!awayTbd && <CrestGlobal tla={match.awayTeam.tla} size={13} teamName={match.awayTeam.name} />}
+        <BracketTLA winner={awayWon} tbd={awayTbd} numberOfLines={1}>
           {awayTbd ? '?' : match.awayTeam.tla}
         </BracketTLA>
-        {hasScore && <BracketScoreNum winner={awayWon}>{aScore}</BracketScoreNum>}
+        {aScore !== null && <BracketScoreNum winner={awayWon}>{aScore}</BracketScoreNum>}
       </BracketTeamLine>
-
-      {(finished || live) && (
-        <BracketMatchStatus live={live}>
-          {live
-            ? `● ${match.minute != null ? `${match.minute}'` : 'AO VIVO'}`
-            : 'Encerrado'}
-        </BracketMatchStatus>
-      )}
     </BracketMatchBox>
   );
 }
 
-function BracketFinalItem({ match }: { match: IMatch }) {
-  const finished = match.status === 'FINISHED';
-  const live     = match.status === 'IN_PLAY' || match.status === 'PAUSED';
-  const hasScore = match.score.fullTime.home !== null;
-  const hScore   = match.score.fullTime.home ?? 0;
-  const aScore   = match.score.fullTime.away ?? 0;
-  const homeWon  = finished && hScore > aScore;
-  const awayWon  = finished && aScore > hScore;
-  const homeTbd  = isTbd(match.homeTeam.tla);
-  const awayTbd  = isTbd(match.awayTeam.tla);
-  const champion = homeWon ? match.homeTeam : awayWon ? match.awayTeam : null;
+// Template card — shown before real data is available
+function CompactTplCard({ slot }: { slot: TplSlot }) {
+  return (
+    <BracketMatchBox style={{ height: MATCH_H }}>
+      <BracketMatchStatus>J{slot.match}</BracketMatchStatus>
+      <BracketTeamLine tbd>
+        <BracketTLA tbd numberOfLines={1}>{slot.home}</BracketTLA>
+      </BracketTeamLine>
+      <BracketMatchDivider />
+      <BracketTeamLine tbd>
+        <BracketTLA tbd numberOfLines={1}>{slot.away}</BracketTLA>
+      </BracketTeamLine>
+    </BracketMatchBox>
+  );
+}
+
+// Bracket-shaped connector lines between left-column pair and right-column match
+function BracketConnector() {
+  const topC = MATCH_H / 2;
+  const botC = PAIR_H - MATCH_H / 2;
+  const mid  = PAIR_H / 2;
+  const VX   = CONN_W - 8; // x of the vertical bar
+  const T    = 1.5;
+  const C    = theme.colors.accent.gold;
+  const OP   = 0.55;
 
   return (
-    <>
-      <BracketFinalCard>
-        <BracketFinalTeamLine winner={homeWon} tbd={homeTbd}>
-          {!homeTbd && (
-            <CrestGlobal tla={match.homeTeam.tla} size={26} teamName={match.homeTeam.name} />
-          )}
-          <BracketFinalTLA winner={homeWon} tbd={homeTbd}>
-            {homeTbd ? 'A definir' : match.homeTeam.tla}
-          </BracketFinalTLA>
-          {hasScore && <BracketFinalScore winner={homeWon}>{hScore}</BracketFinalScore>}
-        </BracketFinalTeamLine>
+    <View style={{ width: CONN_W, height: PAIR_H }}>
+      {/* Horizontal arm: top match → vertical bar */}
+      <View style={{ position: 'absolute', left: 0, top: topC - T / 2, width: VX, height: T, backgroundColor: C, opacity: OP }} />
+      {/* Horizontal arm: bottom match → vertical bar */}
+      <View style={{ position: 'absolute', left: 0, top: botC - T / 2, width: VX, height: T, backgroundColor: C, opacity: OP }} />
+      {/* Vertical bar joining the two arms */}
+      <View style={{ position: 'absolute', left: VX - T / 2, top: topC, width: T, height: botC - topC, backgroundColor: C, opacity: OP }} />
+      {/* Horizontal arm: vertical bar → right match */}
+      <View style={{ position: 'absolute', left: VX, top: mid - T / 2, right: 0, height: T, backgroundColor: C, opacity: OP }} />
+    </View>
+  );
+}
 
-        <BracketMatchDivider />
+type BracketRowProps = {
+  topMatch: IMatch | null;
+  bottomMatch: IMatch | null;
+  rightMatch: IMatch | null;
+  topTpl: TplSlot;
+  bottomTpl: TplSlot;
+  rightTpl: TplSlot;
+};
 
-        <BracketFinalTeamLine winner={awayWon} tbd={awayTbd}>
-          {!awayTbd && (
-            <CrestGlobal tla={match.awayTeam.tla} size={26} teamName={match.awayTeam.name} />
-          )}
-          <BracketFinalTLA winner={awayWon} tbd={awayTbd}>
-            {awayTbd ? 'A definir' : match.awayTeam.tla}
-          </BracketFinalTLA>
-          {hasScore && <BracketFinalScore winner={awayWon}>{aScore}</BracketFinalScore>}
-        </BracketFinalTeamLine>
+function BracketRow({ topMatch, bottomMatch, rightMatch, topTpl, bottomTpl, rightTpl }: BracketRowProps) {
+  return (
+    <View style={{ flexDirection: 'row', marginBottom: OUTER_GAP }}>
+      {/* Left column — two matches stacked */}
+      <View style={{ flex: 1 }}>
+        {topMatch ? <CompactMatchCard match={topMatch} /> : <CompactTplCard slot={topTpl} />}
+        <View style={{ height: INNER_GAP }} />
+        {bottomMatch ? <CompactMatchCard match={bottomMatch} /> : <CompactTplCard slot={bottomTpl} />}
+      </View>
 
-        {(finished || live) && (
-          <BracketMatchStatus live={live}>
-            {live
-              ? `● ${match.minute != null ? `${match.minute}'` : 'AO VIVO'}`
-              : 'Encerrado'}
-          </BracketMatchStatus>
-        )}
-      </BracketFinalCard>
+      <BracketConnector />
 
-      {champion && (
-        <ChampionBanner>
-          <ChampionLabel>🏆 Campeão Mundial</ChampionLabel>
-          <CrestGlobal tla={champion.tla} size={52} teamName={champion.name} />
-          <ChampionName>{champion.tla}</ChampionName>
-        </ChampionBanner>
-      )}
-    </>
+      {/* Right column — single match, vertically centred inside PAIR_H */}
+      <View style={{ flex: 1, height: PAIR_H, justifyContent: 'center' }}>
+        {rightMatch ? <CompactMatchCard match={rightMatch} /> : <CompactTplCard slot={rightTpl} />}
+      </View>
+    </View>
   );
 }
 
 function ChaveamentoTab() {
   const { knockout } = useMatchesContext();
-
-  const allMatches = useMemo(() => {
-    return [...knockout].sort(
-      (a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime(),
-    );
-  }, [knockout]);
+  const [activePhase, setActivePhase] = useState('avos');
 
   const byStage = useMemo(() => {
     const result: Record<string, IMatch[]> = {};
-    allMatches.forEach(m => {
+    knockout.forEach(m => {
       if (!m.stage) return;
-      const stages = ['ROUND_OF_32', 'ROUND_OF_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'FINAL'];
-      if (!stages.includes(m.stage)) return;
       if (!result[m.stage]) result[m.stage] = [];
       result[m.stage].push(m);
     });
+    Object.keys(result).forEach(k => {
+      result[k].sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime());
+    });
     return result;
-  }, [allMatches]);
+  }, [knockout]);
 
-  const finalMatch = byStage['FINAL']?.[0] ?? null;
-  const finalHasRealTeams = finalMatch ? stageHasRealTeams([finalMatch]) : false;
+  const phase    = BRACKET_PHASES.find(p => p.id === activePhase)!;
+  const tpl      = PHASE_TEMPLATES[activePhase];
+  const leftMs   = byStage[phase.leftStage]  ?? [];
+  const rightMs  = byStage[phase.rightStage] ?? [];
+  const pairCount = tpl.right.length;
+
+  const isSemisPhase = phase.rightStage === 'FINAL';
+  const finalMatch   = isSemisPhase ? (rightMs[0] ?? null) : null;
+  const champion = (() => {
+    if (!finalMatch || finalMatch.status !== 'FINISHED') return null;
+    const h = finalMatch.score.fullTime.home ?? 0;
+    const a = finalMatch.score.fullTime.away ?? 0;
+    return h > a ? finalMatch.homeTeam : finalMatch.awayTeam;
+  })();
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      {KNOCKOUT_STAGES.map(stage => {
-        const matches  = byStage[stage.key] ?? [];
-        const hasReal  = matches.length > 0 && stageHasRealTeams(matches);
-        const template = STAGE_TEMPLATES[stage.key] ?? [];
-        const half     = Math.ceil(template.length / 2);
+    <View style={{ flex: 1 }}>
+      {/* Phase selector pills */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 12 }}
+      >
+        {BRACKET_PHASES.map(p => (
+          <BracketPhasePill key={p.id} active={p.id === activePhase} onPress={() => setActivePhase(p.id)}>
+            <BracketPhasePillText active={p.id === activePhase}>{p.label.toUpperCase()}</BracketPhasePillText>
+          </BracketPhasePill>
+        ))}
+      </ScrollView>
 
-        const mid   = Math.ceil(matches.length / 2);
-        const left  = matches.slice(0, mid);
-        const right = matches.slice(mid);
+      {/* Column headers */}
+      <View style={{ flexDirection: 'row', paddingHorizontal: 12, marginBottom: 10, alignItems: 'center' }}>
+        <BracketColHeader style={{ flex: 1 }}>{phase.leftFull}</BracketColHeader>
+        <View style={{ width: CONN_W }} />
+        <BracketColHeader style={{ flex: 1 }}>{phase.rightFull}</BracketColHeader>
+      </View>
 
-        return (
-          <BracketRoundSection key={stage.key}>
-            <BracketRoundHeader>
-              <BracketRoundLabel>{stage.label}</BracketRoundLabel>
-              {hasReal ? (
-                <BracketRoundCount>{matches.length} jogos</BracketRoundCount>
-              ) : (
-                <BracketRoundCount>Projeção</BracketRoundCount>
-              )}
-            </BracketRoundHeader>
+      {/* Bracket rows */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }}>
+        {Array.from({ length: pairCount }).map((_, i) => (
+          <BracketRow
+            key={i}
+            topMatch={leftMs[i * 2] ?? null}
+            bottomMatch={leftMs[i * 2 + 1] ?? null}
+            rightMatch={rightMs[i] ?? null}
+            topTpl={tpl.left[i * 2]}
+            bottomTpl={tpl.left[i * 2 + 1]}
+            rightTpl={tpl.right[i]}
+          />
+        ))}
 
-            {hasReal ? (
-              <BracketSidesRow>
-                <BracketSide>
-                  <BracketSideLabel>◀ Chave A</BracketSideLabel>
-                  {left.map(m => <BracketMatchItem key={m.id} match={m} />)}
-                </BracketSide>
-                <BracketSide>
-                  <BracketSideLabel style={{ textAlign: 'right' }}>Chave B ▶</BracketSideLabel>
-                  {right.map(m => <BracketMatchItem key={m.id} match={m} />)}
-                </BracketSide>
-              </BracketSidesRow>
-            ) : (
-              <BracketSidesRow>
-                <BracketSide>
-                  <BracketSideLabel>◀ Chave A</BracketSideLabel>
-                  {template.slice(0, half).map(slot => (
-                    <BracketTemplateItem key={slot.match} match={slot.match} home={slot.home} away={slot.away} />
-                  ))}
-                </BracketSide>
-                <BracketSide>
-                  <BracketSideLabel style={{ textAlign: 'right' }}>Chave B ▶</BracketSideLabel>
-                  {template.slice(half).map(slot => (
-                    <BracketTemplateItem key={slot.match} match={slot.match} home={slot.home} away={slot.away} />
-                  ))}
-                </BracketSide>
-              </BracketSidesRow>
-            )}
-          </BracketRoundSection>
-        );
-      })}
-
-      <BracketFinalSection>
-        <BracketFinalLabel>🏆  FINAL  🏆</BracketFinalLabel>
-        {finalMatch && finalHasRealTeams ? (
-          <BracketFinalItem match={finalMatch} />
-        ) : (
-          <BracketFinalCard>
-            <BracketMatchStatus>Jogo 104</BracketMatchStatus>
-            <BracketMatchDivider />
-            <BracketFinalTeamLine tbd={true}>
-              <BracketFinalTLA tbd={true}>Vitória 101</BracketFinalTLA>
-            </BracketFinalTeamLine>
-            <BracketMatchDivider />
-            <BracketFinalTeamLine tbd={true}>
-              <BracketFinalTLA tbd={true}>Vitória 102</BracketFinalTLA>
-            </BracketFinalTeamLine>
-          </BracketFinalCard>
+        {champion && (
+          <ChampionBanner style={{ marginTop: 4 }}>
+            <ChampionLabel>🏆 Campeão Mundial</ChampionLabel>
+            <CrestGlobal tla={champion.tla} size={52} teamName={champion.name} />
+            <ChampionName>{champion.tla}</ChampionName>
+          </ChampionBanner>
         )}
-      </BracketFinalSection>
 
-      <BottomSpacer />
-    </ScrollView>
+        <BottomSpacer />
+      </ScrollView>
+    </View>
   );
 }
 
