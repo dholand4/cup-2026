@@ -27,7 +27,7 @@ import {
   ChampionBanner, ChampionLabel, ChampionName,
 } from './style';
 
-type ActiveTab = 'grupos' | 'chaveamento' | 'artilheiros';
+type ActiveTab = 'grupos' | 'matamata' | 'artilheiros';
 
 // ── helpers ────────────────────────────────────────────────────────────
 
@@ -419,9 +419,11 @@ function ChaveamentoTab() {
     pagerRef.current?.scrollTo({ x: idx * SCREEN_W, animated: true });
   };
 
-  const handlePageChange = (e: any) => {
+  const handleScroll = (e: any) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
-    if (idx !== activeIdx) setActiveIdx(idx);
+    if (idx >= 0 && idx < BRACKET_PHASES.length && idx !== activeIdx) {
+      setActiveIdx(idx);
+    }
   };
 
   return (
@@ -453,7 +455,10 @@ function ChaveamentoTab() {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={handlePageChange}
+        scrollEventThrottle={100}
+        onScroll={handleScroll}
+        onScrollEndDrag={handleScroll}
+        onMomentumScrollEnd={handleScroll}
         style={{ flex: 1 }}
         nestedScrollEnabled
       >
@@ -557,8 +562,8 @@ export function CopaScreen() {
         <TabBtn active={activeTab === 'grupos'} onPress={() => setActiveTab('grupos')}>
           <TabBtnText active={activeTab === 'grupos'}>Grupos</TabBtnText>
         </TabBtn>
-        <TabBtn active={activeTab === 'chaveamento'} onPress={() => setActiveTab('chaveamento')}>
-          <TabBtnText active={activeTab === 'chaveamento'}>Chaveamento</TabBtnText>
+        <TabBtn active={activeTab === 'matamata'} onPress={() => setActiveTab('matamata')}>
+          <TabBtnText active={activeTab === 'matamata'}>Mata Mata</TabBtnText>
         </TabBtn>
         <TabBtn active={activeTab === 'artilheiros'} onPress={() => setActiveTab('artilheiros')}>
           <TabBtnText active={activeTab === 'artilheiros'}>Artilheiros</TabBtnText>
@@ -568,7 +573,7 @@ export function CopaScreen() {
       {activeTab === 'grupos' && (
         <GruposTab groups={groups} refreshing={refreshing} onRefresh={handleRefresh} />
       )}
-      {activeTab === 'chaveamento' && <ChaveamentoTab />}
+      {activeTab === 'matamata' && <ChaveamentoTab />}
       {activeTab === 'artilheiros' && <ArtilheirosTab />}
     </SafeAreaView>
   );
