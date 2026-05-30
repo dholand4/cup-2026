@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   ScrollView, RefreshControl, ActivityIndicator, View,
+  TouchableOpacity, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStandings } from '../../hooks/useStandings';
@@ -22,7 +23,7 @@ import {
   BottomSpacer,
   BracketMatchBox, BracketTeamLine, BracketTLA, BracketScoreNum,
   BracketMatchDivider, BracketMatchStatus,
-  BracketPhasePill, BracketPhasePillText, BracketColHeader,
+  BracketColHeader,
   ChampionBanner, ChampionLabel, ChampionName,
 } from './style';
 
@@ -187,13 +188,14 @@ type PhaseDef = {
   rightStage: string;
   leftFull: string;
   rightFull: string;
+  chaveSplit: number | null; // index where Chave B starts (null = no split)
 };
 
 const BRACKET_PHASES: PhaseDef[] = [
-  { id: 'avos',    label: '16 Avos',  leftStage: 'ROUND_OF_32',    rightStage: 'ROUND_OF_16',    leftFull: '16 Avos de Final', rightFull: 'Oitavas de Final' },
-  { id: 'oitavas', label: 'Oitavas',  leftStage: 'ROUND_OF_16',    rightStage: 'QUARTER_FINALS', leftFull: 'Oitavas de Final', rightFull: 'Quartas de Final' },
-  { id: 'quartas', label: 'Quartas',  leftStage: 'QUARTER_FINALS', rightStage: 'SEMI_FINALS',    leftFull: 'Quartas de Final', rightFull: 'Semifinais'       },
-  { id: 'semis',   label: 'Semis',    leftStage: 'SEMI_FINALS',    rightStage: 'FINAL',          leftFull: 'Semifinais',        rightFull: 'Final'            },
+  { id: 'avos',    label: '16 Avos',  leftStage: 'ROUND_OF_32',    rightStage: 'ROUND_OF_16',    leftFull: '16 Avos de Final', rightFull: 'Oitavas de Final', chaveSplit: 4 },
+  { id: 'oitavas', label: 'Oitavas',  leftStage: 'ROUND_OF_16',    rightStage: 'QUARTER_FINALS', leftFull: 'Oitavas de Final', rightFull: 'Quartas de Final', chaveSplit: 2 },
+  { id: 'quartas', label: 'Quartas',  leftStage: 'QUARTER_FINALS', rightStage: 'SEMI_FINALS',    leftFull: 'Quartas de Final', rightFull: 'Semifinais',       chaveSplit: 1 },
+  { id: 'semis',   label: 'Semis',    leftStage: 'SEMI_FINALS',    rightStage: 'FINAL',          leftFull: 'Semifinais',        rightFull: 'Final',            chaveSplit: null },
 ];
 
 type TplSlot = { match: number; home: string; away: string };
@@ -362,6 +364,17 @@ type BracketRowProps = {
   rightTpl: TplSlot;
 };
 
+// Green separator between Chave A and Chave B
+function ChaveLabel({ label }: { label: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, marginTop: 2 }}>
+      <View style={{ flex: 1, height: 1, backgroundColor: theme.colors.accent.green, opacity: 0.25 }} />
+      <BracketColHeader>{label}</BracketColHeader>
+      <View style={{ flex: 1, height: 1, backgroundColor: theme.colors.accent.green, opacity: 0.25 }} />
+    </View>
+  );
+}
+
 function BracketRow({ topMatch, bottomMatch, rightMatch, topTpl, bottomTpl, rightTpl }: BracketRowProps) {
   return (
     <View style={{ flexDirection: 'row', marginBottom: OUTER_GAP }}>
@@ -384,7 +397,9 @@ function BracketRow({ topMatch, bottomMatch, rightMatch, topTpl, bottomTpl, righ
 
 function ChaveamentoTab() {
   const { knockout } = useMatchesContext();
-  const [activePhase, setActivePhase] = useState('avos');
+  const { width: SCREEN_W } = useWindowDimensions();
+  const [activeIdx, setActiveIdx] = useState(0);
+  const pagerRef = useRef<ScrollView>(null);
 
   const byStage = useMemo(() => {
     const result: Record<string, IMatch[]> = {};
@@ -399,66 +414,109 @@ function ChaveamentoTab() {
     return result;
   }, [knockout]);
 
-  const phase    = BRACKET_PHASES.find(p => p.id === activePhase)!;
-  const tpl      = PHASE_TEMPLATES[activePhase];
-  const leftMs   = byStage[phase.leftStage]  ?? [];
-  const rightMs  = byStage[phase.rightStage] ?? [];
-  const pairCount = tpl.right.length;
+  const goToPage = (idx: number) => {
+    setActiveIdx(idx);
+    pagerRef.current?.scrollTo({ x: idx * SCREEN_W, animated: true });
+  };
 
-  const isSemisPhase = phase.rightStage === 'FINAL';
-  const finalMatch   = isSemisPhase ? (rightMs[0] ?? null) : null;
-  const champion = (() => {
-    if (!finalMatch || finalMatch.status !== 'FINISHED') return null;
-    const h = finalMatch.score.fullTime.home ?? 0;
-    const a = finalMatch.score.fullTime.away ?? 0;
-    return h > a ? finalMatch.homeTeam : finalMatch.awayTeam;
-  })();
+  const handlePageChange = (e: any) => {
+    const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
+    if (idx !== activeIdx) setActiveIdx(idx);
+  };
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Phase selector pills */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 8, paddingBottom: 12 }}
-      >
-        {BRACKET_PHASES.map(p => (
-          <BracketPhasePill key={p.id} active={p.id === activePhase} onPress={() => setActivePhase(p.id)}>
-            <BracketPhasePillText active={p.id === activePhase}>{p.label.toUpperCase()}</BracketPhasePillText>
-          </BracketPhasePill>
-        ))}
-      </ScrollView>
-
-      {/* Column headers */}
-      <View style={{ flexDirection: 'row', paddingHorizontal: 12, marginBottom: 10, alignItems: 'center' }}>
-        <BracketColHeader style={{ flex: 1 }}>{phase.leftFull}</BracketColHeader>
-        <View style={{ width: CONN_W }} />
-        <BracketColHeader style={{ flex: 1 }}>{phase.rightFull}</BracketColHeader>
+      {/* Phase indicator: current label + swipeable dots */}
+      <View style={{ paddingHorizontal: 16, paddingBottom: 10, alignItems: 'center' }}>
+        <BracketColHeader style={{ fontSize: 11, marginBottom: 8, textAlign: 'center' }}>
+          {BRACKET_PHASES[activeIdx].leftFull.toUpperCase()}  →  {BRACKET_PHASES[activeIdx].rightFull.toUpperCase()}
+        </BracketColHeader>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {BRACKET_PHASES.map((p, i) => (
+            <TouchableOpacity key={p.id} onPress={() => goToPage(i)} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
+              <View style={{
+                height: 5,
+                width: i === activeIdx ? 22 : 5,
+                borderRadius: 3,
+                backgroundColor: i === activeIdx
+                  ? theme.colors.accent.gold
+                  : theme.colors.border,
+              }} />
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {/* Bracket rows */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }}>
-        {Array.from({ length: pairCount }).map((_, i) => (
-          <BracketRow
-            key={i}
-            topMatch={leftMs[i * 2] ?? null}
-            bottomMatch={leftMs[i * 2 + 1] ?? null}
-            rightMatch={rightMs[i] ?? null}
-            topTpl={tpl.left[i * 2]}
-            bottomTpl={tpl.left[i * 2 + 1]}
-            rightTpl={tpl.right[i]}
-          />
-        ))}
+      {/* Swipeable pager — one page per phase */}
+      <ScrollView
+        ref={pagerRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handlePageChange}
+        style={{ flex: 1 }}
+        nestedScrollEnabled
+      >
+        {BRACKET_PHASES.map(phase => {
+          const tpl       = PHASE_TEMPLATES[phase.id];
+          const leftMs    = byStage[phase.leftStage]  ?? [];
+          const rightMs   = byStage[phase.rightStage] ?? [];
+          const pairCount = tpl.right.length;
 
-        {champion && (
-          <ChampionBanner style={{ marginTop: 4 }}>
-            <ChampionLabel>🏆 Campeão Mundial</ChampionLabel>
-            <CrestGlobal tla={champion.tla} size={52} teamName={champion.name} />
-            <ChampionName>{champion.tla}</ChampionName>
-          </ChampionBanner>
-        )}
+          const finalMatch = phase.rightStage === 'FINAL' ? (rightMs[0] ?? null) : null;
+          const champion   = (() => {
+            if (!finalMatch || finalMatch.status !== 'FINISHED') return null;
+            const h = finalMatch.score.fullTime.home ?? 0;
+            const a = finalMatch.score.fullTime.away ?? 0;
+            return h > a ? finalMatch.homeTeam : finalMatch.awayTeam;
+          })();
 
-        <BottomSpacer />
+          return (
+            <View key={phase.id} style={{ width: SCREEN_W, flex: 1 }}>
+              {/* Column headers */}
+              <View style={{ flexDirection: 'row', paddingHorizontal: 12, marginBottom: 10 }}>
+                <BracketColHeader style={{ flex: 1 }}>{phase.leftFull}</BracketColHeader>
+                <View style={{ width: CONN_W }} />
+                <BracketColHeader style={{ flex: 1 }}>{phase.rightFull}</BracketColHeader>
+              </View>
+
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled
+                contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 20 }}
+              >
+                {Array.from({ length: pairCount }).map((_, i) => (
+                  <React.Fragment key={i}>
+                    {phase.chaveSplit != null && i === 0 && (
+                      <ChaveLabel label="CHAVE A" />
+                    )}
+                    {phase.chaveSplit != null && i === phase.chaveSplit && (
+                      <ChaveLabel label="CHAVE B" />
+                    )}
+                    <BracketRow
+                      topMatch={leftMs[i * 2] ?? null}
+                      bottomMatch={leftMs[i * 2 + 1] ?? null}
+                      rightMatch={rightMs[i] ?? null}
+                      topTpl={tpl.left[i * 2]}
+                      bottomTpl={tpl.left[i * 2 + 1]}
+                      rightTpl={tpl.right[i]}
+                    />
+                  </React.Fragment>
+                ))}
+
+                {champion && (
+                  <ChampionBanner style={{ marginTop: 4 }}>
+                    <ChampionLabel>🏆 Campeão Mundial</ChampionLabel>
+                    <CrestGlobal tla={champion.tla} size={52} teamName={champion.name} />
+                    <ChampionName>{champion.tla}</ChampionName>
+                  </ChampionBanner>
+                )}
+
+                <BottomSpacer />
+              </ScrollView>
+            </View>
+          );
+        })}
       </ScrollView>
     </View>
   );
