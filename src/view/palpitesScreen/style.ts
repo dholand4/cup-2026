@@ -868,3 +868,62 @@ export const RulesCloseBtnText = styled.Text`
   font-size: 14px;
   color: #fff;
 `;
+
+// ── Pending approvals ──────────────────────────────────────────────────
+
+export const PendingBanner = styled.View`
+  margin: 16px 20px 0;
+  padding: 12px 14px;
+  background-color: rgba(255,215,0,0.06);
+  border-radius: ${({ theme }) => theme.borderRadius.md}px;
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.accent.gold};
+  gap: 10px;
+`;
+
+export const PendingBannerTitle = styled.Text`
+  font-family: Manrope_800ExtraBold;
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  color: ${({ theme }) => theme.colors.accent.gold};
+  text-transform: uppercase;
+`;
+
+export const PendingBannerText = styled.Text`
+  font-family: Manrope_500Medium;
+  font-size: 13px;
+  color: ${({ theme }) => theme.colors.text.secondary};
+`;
+
+export const PendingRequestRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+`;
+
+export const PendingRequestName = styled.Text`
+  flex: 1;
+  font-family: Manrope_600SemiBold;
+  font-size: 13px;
+  color: ${({ theme }) => theme.colors.text.primary};
+`;
+
+export const PendingApproveBtn = styled.TouchableOpacity`
+  padding: 5px 10px;
+  background-color: ${({ theme }) => theme.colors.accent.green};
+  border-radius: ${({ theme }) => theme.borderRadius.sm}px;
+`;
+
+export const PendingRejectBtn = styled.TouchableOpacity`
+  padding: 5px 10px;
+  border-radius: ${({ theme }) => theme.borderRadius.sm}px;
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.accent.live};
+`;
+
+export const PendingBtnText = styled.Text<{ approve?: boolean }>`
+  font-family: Manrope_700Bold;
+  font-size: 11px;
+  color: ${({ approve, theme }) =>
+    approve ? theme.colors.background.primary : theme.colors.accent.live};
+`;

@@ -19,7 +19,7 @@ import { ALL_TEAMS, ITeamOption } from '../../utils/allTeams';
 import { theme } from '../../constants/theme';
 import { useAuth } from '../../providers/AuthProvider';
 import { AdminNotifModal } from '../../components/adminNotifModal';
-import { useLiga } from '../../hooks/useLiga';
+import { useLiga, IPendingRequest } from '../../hooks/useLiga';
 import { supabase } from '../../services/supabaseClient';
 import {
   Screen, Header, WordmarkCopa, WordmarkYear, Wordmark, SubTitle,
@@ -52,6 +52,9 @@ import {
   HeaderRow,
   ModeSwitcher, ModeBtn, ModeBtnText,
   OutcomeRow, OutcomeBtn, OutcomeBtnText,
+  PendingBanner, PendingBannerTitle, PendingBannerText,
+  PendingRequestRow, PendingRequestName,
+  PendingApproveBtn, PendingRejectBtn, PendingBtnText,
 } from './style';
 
 type ActiveTab = 'jogos' | 'bracket' | 'ranking';
@@ -458,9 +461,11 @@ function BracketTab({ bracket, locked, actual, onSave, onRemove }: IBracketTabPr
 // ── RankingTab ─────────────────────────────────────────────────────────
 
 function RankingTab({ pointsKey }: { pointsKey: number }) {
-  const { user, isGuest, signOut }                                               = useAuth();
+  const { user, isGuest, signOut }                                                     = useAuth();
   const { ligas, selectedLiga, ranking, loading, selectLiga,
-          createLiga, joinLiga, leaveLiga, refresh }                             = useLiga(user?.id);
+          createLiga, joinLiga, leaveLiga, refresh,
+          pendingSolicitations, pendingRequests,
+          approveRequest, rejectRequest }                                              = useLiga(user?.id);
 
   // Re-busca o ranking quando os pontos são sincronizados no Supabase
   useEffect(() => {
@@ -516,6 +521,21 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
       ],
     );
   }, [user, leaveLiga]);
+
+  const handleApprove = useCallback(async (ligaId: string, targetUserId: string) => {
+    const err = await approveRequest(ligaId, targetUserId);
+    if (err) Alert.alert('Erro', err);
+  }, [approveRequest]);
+
+  const handleReject = useCallback(async (ligaId: string, targetUserId: string) => {
+    Alert.alert('Recusar solicitação', 'Tem certeza?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Recusar', style: 'destructive', onPress: async () => {
+        const err = await rejectRequest(ligaId, targetUserId);
+        if (err) Alert.alert('Erro', err);
+      }},
+    ]);
+  }, [rejectRequest]);
 
   // ── Visitante ──────────────────────────────────────────────────────────
   if (isGuest) {
@@ -583,8 +603,38 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
     </>
   );
 
-  // ── Sem ligas ──────────────────────────────────────────────────────────
-  if (ligas.length === 0) {
+  // ── Seções reutilizáveis ───────────────────────────────────────────────
+
+  // Ligas onde o usuário está aguardando aprovação
+  const solicitacoesSection = pendingSolicitations.length > 0 ? (
+    <PendingBanner>
+      <PendingBannerTitle>Aguardando Aprovação</PendingBannerTitle>
+      {pendingSolicitations.map(l => (
+        <PendingBannerText key={l.id}>⏳  Sua solicitação para "{l.nome}" está pendente.</PendingBannerText>
+      ))}
+    </PendingBanner>
+  ) : null;
+
+  // Usuários esperando para entrar nas ligas do criador
+  const requestsSection = pendingRequests.length > 0 ? (
+    <PendingBanner>
+      <PendingBannerTitle>Solicitações Pendentes</PendingBannerTitle>
+      {pendingRequests.map((r: IPendingRequest) => (
+        <PendingRequestRow key={`${r.liga_id}-${r.usuario_id}`}>
+          <PendingRequestName>{r.apelido} · {r.liga_nome}</PendingRequestName>
+          <PendingApproveBtn onPress={() => handleApprove(r.liga_id, r.usuario_id)}>
+            <PendingBtnText approve>Aceitar</PendingBtnText>
+          </PendingApproveBtn>
+          <PendingRejectBtn onPress={() => handleReject(r.liga_id, r.usuario_id)}>
+            <PendingBtnText>Recusar</PendingBtnText>
+          </PendingRejectBtn>
+        </PendingRequestRow>
+      ))}
+    </PendingBanner>
+  ) : null;
+
+  // ── Sem ligas e sem pendências ─────────────────────────────────────────
+  if (ligas.length === 0 && pendingSolicitations.length === 0 && pendingRequests.length === 0) {
     return (
       <>
         <NoLigaContainer>
@@ -598,63 +648,80 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
     );
   }
 
-  // ── Lista de ligas + ranking da selecionada ────────────────────────────
+  // ── Tem pendências e/ou ligas ativas ──────────────────────────────────
   return (
     <>
-      {/* Lista de ligas */}
-      <LigaListContainer>
-        {ligas.map(l => (
-          <LigaListItem key={l.id} active={selectedLiga?.id === l.id} onPress={() => selectLiga(l)}>
-            <LigaListItemName active={selectedLiga?.id === l.id}>{l.nome}</LigaListItemName>
-            <LigaListItemCode>{l.codigo}</LigaListItemCode>
-            <Ionicons
-              name="chevron-forward"
-              size={14}
-              color={selectedLiga?.id === l.id ? theme.colors.accent.green : theme.colors.text.muted}
-            />
-          </LigaListItem>
-        ))}
-      </LigaListContainer>
+      {solicitacoesSection}
+      {requestsSection}
 
-      {/* Botões criar / entrar */}
-      <LigaActionsRow>
-        <LigaActionSmallBtn onPress={openCreate}>
-          <LigaActionSmallBtnText>+ Criar liga</LigaActionSmallBtnText>
-        </LigaActionSmallBtn>
-        <LigaActionSmallBtn outline onPress={openJoin}>
-          <LigaActionSmallBtnText outline>Entrar com código</LigaActionSmallBtnText>
-        </LigaActionSmallBtn>
-      </LigaActionsRow>
+      {ligas.length === 0 ? (
+        // Só pendências, sem ligas ativas — mostra botões criar/entrar
+        <LigaActionsRow style={{ marginTop: 12 }}>
+          <LigaActionSmallBtn onPress={openCreate}>
+            <LigaActionSmallBtnText>+ Criar liga</LigaActionSmallBtnText>
+          </LigaActionSmallBtn>
+          <LigaActionSmallBtn outline onPress={openJoin}>
+            <LigaActionSmallBtnText outline>Entrar com código</LigaActionSmallBtnText>
+          </LigaActionSmallBtn>
+        </LigaActionsRow>
+      ) : (
+        <>
+          {/* Lista de ligas ativas */}
+          <LigaListContainer>
+            {ligas.map(l => (
+              <LigaListItem key={l.id} active={selectedLiga?.id === l.id} onPress={() => selectLiga(l)}>
+                <LigaListItemName active={selectedLiga?.id === l.id}>{l.nome}</LigaListItemName>
+                <LigaListItemCode>{l.codigo}</LigaListItemCode>
+                <Ionicons
+                  name="chevron-forward"
+                  size={14}
+                  color={selectedLiga?.id === l.id ? theme.colors.accent.green : theme.colors.text.muted}
+                />
+              </LigaListItem>
+            ))}
+          </LigaListContainer>
 
-      {/* Ranking da liga selecionada */}
-      {selectedLiga && (
-        <LigaCard>
-          <LigaCardHeader>
-            <LigaName>{selectedLiga.nome}</LigaName>
-            <LigaLeaveBtn onPress={() => handleLeave(selectedLiga)}>
-              <LigaLeaveBtnText>Sair</LigaLeaveBtnText>
-            </LigaLeaveBtn>
-          </LigaCardHeader>
+          {/* Botões criar / entrar */}
+          <LigaActionsRow>
+            <LigaActionSmallBtn onPress={openCreate}>
+              <LigaActionSmallBtnText>+ Criar liga</LigaActionSmallBtnText>
+            </LigaActionSmallBtn>
+            <LigaActionSmallBtn outline onPress={openJoin}>
+              <LigaActionSmallBtnText outline>Entrar com código</LigaActionSmallBtnText>
+            </LigaActionSmallBtn>
+          </LigaActionsRow>
 
-          <LigaCodeRow onPress={handleShare}>
-            <LigaCodeLabel>CÓDIGO</LigaCodeLabel>
-            <LigaCodeValue>{selectedLiga.codigo}</LigaCodeValue>
-            <Ionicons name="share-outline" size={14} color={theme.colors.accent.green} />
-          </LigaCodeRow>
+          {/* Ranking da liga selecionada */}
+          {selectedLiga && (
+            <LigaCard>
+              <LigaCardHeader>
+                <LigaName>{selectedLiga.nome}</LigaName>
+                <LigaLeaveBtn onPress={() => handleLeave(selectedLiga)}>
+                  <LigaLeaveBtnText>Sair</LigaLeaveBtnText>
+                </LigaLeaveBtn>
+              </LigaCardHeader>
 
-          {ranking.map((m, i) => {
-            const isMe = m.usuario_id === user?.id;
-            return (
-              <RankingRow key={m.usuario_id} isMe={isMe}>
-                <RankPosition top={i < 3}>{i + 1}</RankPosition>
-                <RankApelido isMe={isMe}>
-                  {m.apelido}{isMe && <RankMeTag> (você)</RankMeTag>}
-                </RankApelido>
-                <RankPoints>{m.pontos} pts</RankPoints>
-              </RankingRow>
-            );
-          })}
-        </LigaCard>
+              <LigaCodeRow onPress={handleShare}>
+                <LigaCodeLabel>CÓDIGO</LigaCodeLabel>
+                <LigaCodeValue>{selectedLiga.codigo}</LigaCodeValue>
+                <Ionicons name="share-outline" size={14} color={theme.colors.accent.green} />
+              </LigaCodeRow>
+
+              {ranking.map((m, i) => {
+                const isMe = m.usuario_id === user?.id;
+                return (
+                  <RankingRow key={m.usuario_id} isMe={isMe}>
+                    <RankPosition top={i < 3}>{i + 1}</RankPosition>
+                    <RankApelido isMe={isMe}>
+                      {m.apelido}{isMe && <RankMeTag> (você)</RankMeTag>}
+                    </RankApelido>
+                    <RankPoints>{m.pontos} pts</RankPoints>
+                  </RankingRow>
+                );
+              })}
+            </LigaCard>
+          )}
+        </>
       )}
 
       {modais}
@@ -791,7 +858,8 @@ export function PalpitesScreen() {
       await supabase
         .from('membros_liga')
         .update({ pontos: points })
-        .eq('usuario_id', user.id);
+        .eq('usuario_id', user.id)
+        .eq('status', 'ativo');
       // Avisa RankingTab que os pontos mudaram → ele re-busca do Supabase
       setRankingRefreshKey(k => k + 1);
     }, 2000);
