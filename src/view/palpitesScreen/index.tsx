@@ -473,14 +473,15 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
     if (pointsKey > 0) refresh();
   }, [pointsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [showCreate,      setShowCreate]      = useState(false);
-  const [showJoin,        setShowJoin]        = useState(false);
+  const [showCreate,       setShowCreate]       = useState(false);
+  const [showJoin,         setShowJoin]         = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [ligaNome,        setLigaNome]        = useState('');
-  const [ligaCodigo,      setLigaCodigo]      = useState('');
-  const [modalLoading,    setModalLoading]    = useState(false);
-  const [modalError,      setModalError]      = useState<string | null>(null);
-  const [leaveLoading,    setLeaveLoading]    = useState(false);
+  const [confirmRemove,    setConfirmRemove]    = useState<{ ligaId: string; userId: string; apelido: string } | null>(null);
+  const [ligaNome,         setLigaNome]         = useState('');
+  const [ligaCodigo,       setLigaCodigo]       = useState('');
+  const [modalLoading,     setModalLoading]     = useState(false);
+  const [modalError,       setModalError]       = useState<string | null>(null);
+  const [leaveLoading,     setLeaveLoading]     = useState(false);
 
   const openCreate = useCallback(() => { setModalError(null); setLigaNome('');   setShowCreate(true); }, []);
   const openJoin   = useCallback(() => { setModalError(null); setLigaCodigo(''); setShowJoin(true);   }, []);
@@ -526,9 +527,11 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
     await rejectRequest(ligaId, targetUserId);
   }, [rejectRequest]);
 
-  const handleRemoveMember = useCallback(async (ligaId: string, targetUserId: string) => {
-    await removeMember(ligaId, targetUserId);
-  }, [removeMember]);
+  const handleRemoveMember = useCallback(async () => {
+    if (!confirmRemove) return;
+    await removeMember(confirmRemove.ligaId, confirmRemove.userId);
+    setConfirmRemove(null);
+  }, [confirmRemove, removeMember]);
 
   // ── Visitante ──────────────────────────────────────────────────────────
   if (isGuest) {
@@ -588,6 +591,27 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
               {modalLoading ? <ActivityIndicator color={theme.colors.background.primary} /> : <LigaActionBtnText>Entrar</LigaActionBtnText>}
             </LigaActionBtn>
             <LigaActionBtn outline onPress={() => setShowJoin(false)}>
+              <LigaActionBtnText outline>Cancelar</LigaActionBtnText>
+            </LigaActionBtn>
+          </LigaModalSheet>
+        </LigaModalOverlay>
+      </Modal>
+
+      {/* Confirmação de remover membro */}
+      <Modal visible={!!confirmRemove} transparent animationType="fade">
+        <LigaModalOverlay>
+          <LigaModalSheet>
+            <LigaModalTitle>Remover membro</LigaModalTitle>
+            <LigaInputLabel style={{ textAlign: 'center', marginBottom: 16 }}>
+              {`Remover "${confirmRemove?.apelido}" da liga?`}
+            </LigaInputLabel>
+            <LigaActionBtn
+              onPress={handleRemoveMember}
+              style={{ backgroundColor: theme.colors.accent.live, borderColor: theme.colors.accent.live }}
+            >
+              <LigaActionBtnText>Remover</LigaActionBtnText>
+            </LigaActionBtn>
+            <LigaActionBtn outline onPress={() => setConfirmRemove(null)}>
               <LigaActionBtnText outline>Cancelar</LigaActionBtnText>
             </LigaActionBtn>
           </LigaModalSheet>
@@ -737,7 +761,7 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
                     </RankApelido>
                     <RankPoints>{m.pontos} pts</RankPoints>
                     {isOwner && !isMe && (
-                      <RemoveMemberBtn onPress={() => handleRemoveMember(selectedLiga.id, m.usuario_id)}>
+                      <RemoveMemberBtn onPress={() => setConfirmRemove({ ligaId: selectedLiga.id, userId: m.usuario_id, apelido: m.apelido })}>
                         <RemoveMemberBtnText>✕</RemoveMemberBtnText>
                       </RemoveMemberBtn>
                     )}
