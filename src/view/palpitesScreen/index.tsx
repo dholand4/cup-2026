@@ -55,6 +55,7 @@ import {
   PendingBanner, PendingBannerTitle, PendingBannerText,
   PendingRequestRow, PendingRequestName,
   PendingApproveBtn, PendingRejectBtn, PendingBtnText,
+  RemoveMemberBtn, RemoveMemberBtnText,
 } from './style';
 
 type ActiveTab = 'jogos' | 'bracket' | 'ranking';
@@ -465,19 +466,21 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
   const { ligas, selectedLiga, ranking, loading, selectLiga,
           createLiga, joinLiga, leaveLiga, refresh,
           pendingSolicitations, pendingRequests,
-          approveRequest, rejectRequest }                                              = useLiga(user?.id);
+          approveRequest, rejectRequest, removeMember }                               = useLiga(user?.id);
 
   // Re-busca o ranking quando os pontos são sincronizados no Supabase
   useEffect(() => {
     if (pointsKey > 0) refresh();
   }, [pointsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [showCreate,   setShowCreate]   = useState(false);
-  const [showJoin,     setShowJoin]     = useState(false);
-  const [ligaNome,     setLigaNome]     = useState('');
-  const [ligaCodigo,   setLigaCodigo]   = useState('');
-  const [modalLoading, setModalLoading] = useState(false);
-  const [modalError,   setModalError]   = useState<string | null>(null);
+  const [showCreate,      setShowCreate]      = useState(false);
+  const [showJoin,        setShowJoin]        = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [ligaNome,        setLigaNome]        = useState('');
+  const [ligaCodigo,      setLigaCodigo]      = useState('');
+  const [modalLoading,    setModalLoading]    = useState(false);
+  const [modalError,      setModalError]      = useState<string | null>(null);
+  const [leaveLoading,    setLeaveLoading]    = useState(false);
 
   const openCreate = useCallback(() => { setModalError(null); setLigaNome('');   setShowCreate(true); }, []);
   const openJoin   = useCallback(() => { setModalError(null); setLigaCodigo(''); setShowJoin(true);   }, []);
@@ -505,37 +508,27 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
     await Share.share({ message: `Entre na minha liga no Arena Score!\nCódigo: ${selectedLiga.codigo}` });
   }, [selectedLiga]);
 
-  const handleLeave = useCallback((liga: typeof selectedLiga) => {
-    if (!liga) return;
-    Alert.alert(
-      'Sair da liga',
-      liga.criador_id === user?.id
-        ? 'Você é o criador. A liga será excluída para todos.'
-        : 'Tem certeza que quer sair desta liga?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sair', style: 'destructive', onPress: async () => {
-          const err = await leaveLiga(liga);
-          if (err) Alert.alert('Erro', err);
-        }},
-      ],
-    );
-  }, [user, leaveLiga]);
+  const confirmLeave = useCallback(async () => {
+    if (!selectedLiga) return;
+    setLeaveLoading(true);
+    const err = await leaveLiga(selectedLiga);
+    setLeaveLoading(false);
+    if (!err) { setShowLeaveConfirm(false); return; }
+    setShowLeaveConfirm(false);
+    setModalError(err);
+  }, [selectedLiga, leaveLiga]);
 
   const handleApprove = useCallback(async (ligaId: string, targetUserId: string) => {
-    const err = await approveRequest(ligaId, targetUserId);
-    if (err) Alert.alert('Erro', err);
+    await approveRequest(ligaId, targetUserId);
   }, [approveRequest]);
 
   const handleReject = useCallback(async (ligaId: string, targetUserId: string) => {
-    Alert.alert('Recusar solicitação', 'Tem certeza?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Recusar', style: 'destructive', onPress: async () => {
-        const err = await rejectRequest(ligaId, targetUserId);
-        if (err) Alert.alert('Erro', err);
-      }},
-    ]);
+    await rejectRequest(ligaId, targetUserId);
   }, [rejectRequest]);
+
+  const handleRemoveMember = useCallback(async (ligaId: string, targetUserId: string) => {
+    await removeMember(ligaId, targetUserId);
+  }, [removeMember]);
 
   // ── Visitante ──────────────────────────────────────────────────────────
   if (isGuest) {
@@ -595,6 +588,32 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
               {modalLoading ? <ActivityIndicator color={theme.colors.background.primary} /> : <LigaActionBtnText>Entrar</LigaActionBtnText>}
             </LigaActionBtn>
             <LigaActionBtn outline onPress={() => setShowJoin(false)}>
+              <LigaActionBtnText outline>Cancelar</LigaActionBtnText>
+            </LigaActionBtn>
+          </LigaModalSheet>
+        </LigaModalOverlay>
+      </Modal>
+
+      {/* Confirmação de sair — Modal próprio (funciona em web e nativo) */}
+      <Modal visible={showLeaveConfirm} transparent animationType="fade">
+        <LigaModalOverlay>
+          <LigaModalSheet>
+            <LigaModalTitle>Sair da liga</LigaModalTitle>
+            <LigaInputLabel style={{ textAlign: 'center', marginBottom: 16 }}>
+              {selectedLiga?.criador_id === user?.id
+                ? 'Você é o criador. A liga será excluída para todos os membros.'
+                : `Tem certeza que quer sair de "${selectedLiga?.nome}"?`}
+            </LigaInputLabel>
+            <LigaActionBtn
+              onPress={confirmLeave}
+              disabled={leaveLoading}
+              style={{ backgroundColor: theme.colors.accent.live, borderColor: theme.colors.accent.live }}
+            >
+              {leaveLoading
+                ? <ActivityIndicator color="#fff" />
+                : <LigaActionBtnText>Sair da liga</LigaActionBtnText>}
+            </LigaActionBtn>
+            <LigaActionBtn outline onPress={() => setShowLeaveConfirm(false)} disabled={leaveLoading}>
               <LigaActionBtnText outline>Cancelar</LigaActionBtnText>
             </LigaActionBtn>
           </LigaModalSheet>
@@ -696,7 +715,7 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
             <LigaCard>
               <LigaCardHeader>
                 <LigaName>{selectedLiga.nome}</LigaName>
-                <LigaLeaveBtn onPress={() => handleLeave(selectedLiga)}>
+                <LigaLeaveBtn onPress={() => setShowLeaveConfirm(true)}>
                   <LigaLeaveBtnText>Sair</LigaLeaveBtnText>
                 </LigaLeaveBtn>
               </LigaCardHeader>
@@ -709,6 +728,7 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
 
               {ranking.map((m, i) => {
                 const isMe = m.usuario_id === user?.id;
+                const isOwner = selectedLiga.criador_id === user?.id;
                 return (
                   <RankingRow key={m.usuario_id} isMe={isMe}>
                     <RankPosition top={i < 3}>{i + 1}</RankPosition>
@@ -716,6 +736,11 @@ function RankingTab({ pointsKey }: { pointsKey: number }) {
                       {m.apelido}{isMe && <RankMeTag> (você)</RankMeTag>}
                     </RankApelido>
                     <RankPoints>{m.pontos} pts</RankPoints>
+                    {isOwner && !isMe && (
+                      <RemoveMemberBtn onPress={() => handleRemoveMember(selectedLiga.id, m.usuario_id)}>
+                        <RemoveMemberBtnText>✕</RemoveMemberBtnText>
+                      </RemoveMemberBtn>
+                    )}
                   </RankingRow>
                 );
               })}

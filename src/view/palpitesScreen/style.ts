@@ -696,6 +696,20 @@ export const RankPoints = styled.Text`
   text-align: right;
 `;
 
+export const RemoveMemberBtn = styled.TouchableOpacity`
+  padding: 3px 7px;
+  margin-left: 6px;
+  border-radius: ${({ theme }) => theme.borderRadius.sm}px;
+  border-width: 1px;
+  border-color: ${({ theme }) => theme.colors.accent.live};
+`;
+
+export const RemoveMemberBtnText = styled.Text`
+  font-family: Manrope_700Bold;
+  font-size: 10px;
+  color: ${({ theme }) => theme.colors.accent.live};
+`;
+
 export const LigaListContainer = styled.View`
   margin: 16px 20px 0;
   gap: 8px;

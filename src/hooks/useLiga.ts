@@ -257,6 +257,19 @@ export function useLiga(userId: string | null | undefined) {
     return null;
   }, []);
 
+  // ── Remover membro ativo da liga ──────────────────────────────────────
+
+  const removeMember = useCallback(async (ligaId: string, targetUserId: string): Promise<string | null> => {
+    const { error } = await supabase
+      .from('membros_liga')
+      .delete()
+      .eq('liga_id', ligaId)
+      .eq('usuario_id', targetUserId);
+    if (error) return error.message;
+    setRanking(prev => prev.filter(m => m.usuario_id !== targetUserId));
+    return null;
+  }, []);
+
   // ── Rejeitar solicitação ───────────────────────────────────────────────
 
   const rejectRequest = useCallback(async (ligaId: string, targetUserId: string): Promise<string | null> => {
@@ -281,6 +294,6 @@ export function useLiga(userId: string | null | undefined) {
     ligas, selectedLiga, ranking, loading,
     pendingSolicitations, pendingRequests,
     selectLiga, createLiga, joinLiga, leaveLiga, refresh,
-    approveRequest, rejectRequest,
+    approveRequest, rejectRequest, removeMember,
   };
 }
