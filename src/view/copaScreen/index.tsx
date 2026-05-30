@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import {
-  ScrollView, RefreshControl, ActivityIndicator, View,
+  ScrollView, RefreshControl, ActivityIndicator, View, Text,
   TouchableOpacity, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -433,19 +433,37 @@ function ChaveamentoTab() {
         <BracketColHeader style={{ fontSize: 11, marginBottom: 8, textAlign: 'center' }}>
           {BRACKET_PHASES[activeIdx].leftFull.toUpperCase()}  →  {BRACKET_PHASES[activeIdx].rightFull.toUpperCase()}
         </BracketColHeader>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          {BRACKET_PHASES.map((p, i) => (
-            <TouchableOpacity key={p.id} onPress={() => goToPage(i)} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
-              <View style={{
-                height: 5,
-                width: i === activeIdx ? 22 : 5,
-                borderRadius: 3,
-                backgroundColor: i === activeIdx
-                  ? theme.colors.accent.gold
-                  : theme.colors.border,
-              }} />
-            </TouchableOpacity>
-          ))}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <TouchableOpacity
+            onPress={() => goToPage(activeIdx - 1)}
+            disabled={activeIdx === 0}
+            hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
+          >
+            <Text style={{ fontSize: 20, lineHeight: 22, color: activeIdx === 0 ? theme.colors.border : theme.colors.text.secondary }}>‹</Text>
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {BRACKET_PHASES.map((p, i) => (
+              <TouchableOpacity key={p.id} onPress={() => goToPage(i)} hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}>
+                <View style={{
+                  height: 5,
+                  width: i === activeIdx ? 22 : 5,
+                  borderRadius: 3,
+                  backgroundColor: i === activeIdx
+                    ? theme.colors.accent.gold
+                    : theme.colors.border,
+                }} />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            onPress={() => goToPage(activeIdx + 1)}
+            disabled={activeIdx === BRACKET_PHASES.length - 1}
+            hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
+          >
+            <Text style={{ fontSize: 20, lineHeight: 22, color: activeIdx === BRACKET_PHASES.length - 1 ? theme.colors.border : theme.colors.text.secondary }}>›</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
